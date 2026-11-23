@@ -5,6 +5,48 @@ import type { ScamPattern } from "./types";
 
 export const SCAM_PATTERNS: readonly ScamPattern[] = [
   {
+    id: "task-withdrawal-payment",
+    severity: "high",
+    reasonCodes: ["task_withdrawal_payment"],
+    title: {
+      ru: "Доплата для вывода заработка",
+      uz: "Ish haqini yechish uchun qo'shimcha to'lov",
+      en: "Payment to withdraw task earnings",
+    },
+    description: {
+      ru: "После простых заданий или лайков требуют новые деньги, чтобы разблокировать заработок. Это отличается от комиссии, удерживаемой из уже заработанной суммы.",
+      uz: "Oddiy vazifalar yoki layklardan keyin ish haqini yechish uchun yangi pul so'rashadi. Bu ishlab topilgan summadan komissiya ushlab qolishdan farq qiladi.",
+      en: "After simple tasks or likes, new money is demanded to unlock earnings. This differs from a fee deducted from the earnings themselves.",
+    },
+    redFlags: {
+      ru: ["Обещают деньги за задания", "Вывод зависит от нового пополнения, налога или комиссии"],
+      uz: [
+        "Vazifalar uchun pul va'dasi",
+        "Pulni yechish yangi to'lov, soliq yoki komissiyaga bog'liq",
+      ],
+      en: ["Money promised for simple tasks", "Withdrawal requires a new deposit, tax or fee"],
+    },
+    whatToDo: {
+      ru: [
+        "Не доплачивайте для вывода заработка",
+        "Сохраните переписку и чеки; если уже платили, обратитесь в свой банк",
+      ],
+      uz: [
+        "Pulni yechish uchun qo'shimcha pul to'lamang",
+        "Yozishmalar va cheklarni saqlang; to'lagan bo'lsangiz, bankingizga murojaat qiling",
+      ],
+      en: [
+        "Do not pay more to withdraw earnings",
+        "Keep the conversation and receipts; contact your bank if you already paid",
+      ],
+    },
+    examples: {
+      ru: ["За лайки обещают заработок, а для вывода требуют пополнить баланс"],
+      uz: ["Layklar uchun pul va'da qilishadi, pulni yechish uchun balansni to'ldiring deyishadi"],
+      en: ["They promise money for likes, but demand a deposit to withdraw it"],
+    },
+  },
+  {
     id: "otp-code-scam",
     severity: "critical",
     reasonCodes: ["asks_for_otp", "asks_for_sms_code"],

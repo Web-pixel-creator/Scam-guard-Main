@@ -3,6 +3,32 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("toolchain security boundaries", () => {
+  it.each(["verify", "coverage"])("selects Node 22 inside the %s job before install", (job) => {
+    const ci = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const jobs = [...ci.matchAll(/^ {2}([a-z][a-z-]*):\r?$/gmu)];
+    const index = jobs.findIndex((entry) => entry[1] === job);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const block = ci.slice(jobs[index].index, jobs[index + 1]?.index ?? ci.length);
+    const setup = block.match(
+      /uses: actions\/setup-node@[a-f0-9]{40}[^\n]*\r?\n\s+with:\r?\n\s+node-version: 22\s*\r?\n/u,
+    );
+    expect(
+      setup,
+      `${job} cannot inherit Node from another job or the hosted runner`,
+    ).not.toBeNull();
+    expect(setup?.index).toBeLessThan(block.indexOf("run: bun install --frozen-lockfile"));
+  });
+
+  it("bounds full-suite CPU contention without relaxing test deadlines or retries", () => {
+    const config = readFileSync(resolve(process.cwd(), "vitest.config.ts"), "utf8");
+
+    expect(config).toMatch(/maxWorkers:\s*2\s*,/u);
+    expect(config).not.toMatch(/\b(?:testTimeout|hookTimeout|retry|exclude)\s*:/u);
+    expect(config).toContain('include: ["src/**/*.{test,spec}.{ts,tsx}"]');
+    expect(config).toContain('setupFiles: ["./vitest.setup.ts"]');
+    expect(config).not.toMatch(/\bisolate\s*:\s*false/u);
+  });
+
   it("binds the default Vite dev server to IPv4 loopback", () => {
     const config = readFileSync(resolve(process.cwd(), "vite.config.ts"), "utf8");
     expect(config).toMatch(/host:\s*["']127\.0\.0\.1["']/);
@@ -28,38 +54,71 @@ describe("toolchain security boundaries", () => {
 
   it("declares patched toolchain versions and overrides", () => {
     const manifest = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
       overrides?: Record<string, string | Record<string, string>>;
     };
 
-    expect(manifest.devDependencies?.vite).toBe("7.3.6");
+    expect(manifest.devDependencies?.vite).toBe("7.3.8");
+    expect(manifest.devDependencies?.vitest).toBe("4.1.12");
     expect(manifest.devDependencies?.eslint).toBe("^10.8.0");
     expect(manifest.devDependencies?.["eslint-plugin-react-hooks"]).toBe("^7.1.1");
+    expect(manifest.dependencies?.["@tanstack/react-start"]).toBe("1.168.60");
+    expect(manifest.dependencies?.["@tanstack/react-router"]).toBe("1.170.41");
+    expect(manifest.dependencies?.["@tanstack/router-plugin"]).toBe("1.168.42");
     expect(manifest.overrides?.["@babel/core"]).toBe("7.29.7");
-    expect(manifest.overrides?.vite).toBe("7.3.6");
+    expect(manifest.overrides?.vite).toBe("7.3.8");
     expect(manifest.overrides?.esbuild).toBe("0.28.1");
-    expect(manifest.overrides?.["js-yaml"]).toBe("4.3.0");
-    expect(manifest.overrides?.postcss).toBe("8.5.22");
-    expect(manifest.overrides?.["brace-expansion"]).toBe("5.0.8");
+    expect(manifest.overrides?.["js-yaml"]).toBe("4.3.2");
+    expect(manifest.overrides?.postcss).toBe("8.5.23");
+    expect(manifest.overrides?.["brace-expansion"]).toBe("5.0.12");
+    expect(manifest.overrides?.seroval).toBe("1.6.12");
+    expect(manifest.overrides?.["baseline-browser-mapping"]).toBe("2.11.0");
+    expect(manifest.overrides?.browserslist).toBe("4.28.7");
+    expect(manifest.overrides?.nanoid).toBe("3.3.18");
+    expect(manifest.overrides?.["source-map-js"]).toBe("1.2.2");
   });
 
   it("keeps the Docker Bun lock free of the same vulnerable versions", () => {
     const bunLock = readFileSync(resolve(process.cwd(), "bun.lock"), "utf8");
 
-    expect(bunLock).toContain("vite@7.3.6");
+    expect(bunLock).toContain("vite@7.3.8");
     expect(bunLock).toContain("esbuild@0.28.1");
     expect(bunLock).toContain("@babel/core@7.29.7");
-    expect(bunLock).toContain("js-yaml@4.3.0");
-    expect(bunLock).toContain("postcss@8.5.22");
-    expect(bunLock).toContain("brace-expansion@5.0.8");
-    expect(bunLock).not.toMatch(/vite@7\.3\.[0-4](?:\D|$)/);
+    expect(bunLock).toContain("js-yaml@4.3.2");
+    expect(bunLock).toContain("postcss@8.5.23");
+    expect(bunLock).toContain("brace-expansion@5.0.12");
+    expect(bunLock).not.toMatch(/vite@7\.3\.[0-6](?:\D|$)/);
     expect(bunLock).not.toContain("esbuild@0.27.");
     expect(bunLock).not.toContain("js-yaml@4.2.0");
     expect(bunLock).not.toMatch(/postcss@8\.5\.(?:[0-9]|1[01])(?:\D|$)/);
     const braceVersions = [...bunLock.matchAll(/brace-expansion@(\d+\.\d+\.\d+)/gu)].map(
       ([, version]) => version,
     );
-    expect(new Set(braceVersions)).toEqual(new Set(["5.0.8"]));
+    expect(new Set(braceVersions)).toEqual(new Set(["5.0.12"]));
+
+    const patchedVersions = {
+      "@tanstack/react-start": "1.168.60",
+      "@tanstack/start-server-core": "1.169.39",
+      seroval: "1.6.12",
+      "baseline-browser-mapping": "2.11.0",
+      browserslist: "4.28.7",
+      nanoid: "3.3.18",
+      "source-map-js": "1.2.2",
+      vitest: "4.1.12",
+      "@vitest/mocker": "4.1.12",
+    };
+    const records = [...bunLock.matchAll(/^\s*"[^\n]+?":\s*\["([^"\n]+)"/gmu)];
+    for (const [name, version] of Object.entries(patchedVersions)) {
+      const resolvedVersions = records
+        .map((record) => record[1])
+        .filter((record) => record.startsWith(`${name}@`))
+        .map((record) => record.slice(name.length + 1));
+      expect(new Set(resolvedVersions), name).toEqual(new Set([version]));
+    }
+    const ci = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    expect(ci).toContain("@vitest/coverage-v8@4.1.12");
+    expect(ci).not.toContain("@vitest/coverage-v8@4.1.8");
   });
 
   it.each(["ci.yml", "security.yml", "prod-monitor.yml", "backup.yml", "backup-restore-drill.yml"])(
@@ -151,6 +210,15 @@ describe("toolchain security boundaries", () => {
     expect(dockerfile).toContain("/usr/local/lib/node_modules/npm");
     expect(dockerfile).toContain("/usr/local/lib/node_modules/corepack");
     expect(dockerfile).toContain("/opt/yarn-v1.22.22");
+    expect(dockerfile).toContain("FROM oven/bun:1.3.14 AS build");
+    const dockerignore = readFileSync(resolve(process.cwd(), ".dockerignore"), "utf8");
+    expect(dockerignore.split(/\r?\n/u)).toContain("output");
+    expect(dockerignore.split(/\r?\n/u)).toContain(".playwright-cli");
+    expect(dockerfile).toContain("--only-upgrade perl-base");
+    expect(dockerfile).toContain("ge 5.36.0-7+deb12u4");
+    expect(dockerfile.indexOf("--only-upgrade perl-base")).toBeLessThan(
+      dockerfile.indexOf("USER node"),
+    );
     expect(dockerfile).toMatch(/USER\s+node/u);
     expect(dockerfile).toContain('CMD ["node", "dist/server/index.mjs"]');
   });

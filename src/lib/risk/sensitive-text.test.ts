@@ -3,6 +3,114 @@ import { redactText } from "./detect";
 import { evaluateText } from "./rules";
 import { sanitizeSensitiveTextForSink } from "./sensitive-text";
 
+describe("invisible-format secret sink boundary", () => {
+  const controls = [
+    "\u00ad",
+    "\u034f",
+    "\u061c",
+    "\u200b",
+    "\u200c",
+    "\u200d",
+    "\u200f",
+    "\u202e",
+    "\u2060",
+    "\u2066",
+    "\ufeff",
+    "\u115f",
+    "\u1160",
+    "\u17b4",
+    "\u17b5",
+    "\u180b",
+    "\u180c",
+    "\u180d",
+    "\u180e",
+    "\u180f",
+    "\u3164",
+    "\ufe00",
+    "\ufe0f",
+    "\uffa0",
+    "\u{e0100}",
+    "\u{e01ef}",
+  ];
+  const phrase =
+    "apple bicycle candle dragon eagle forest garden harbor island jungle kitten lemon";
+  const fixtures = [
+    ["password", "pass", "word: SyntheticCanarySecret7"],
+    ["code", "C", "VV: 614"],
+    ["code", "verification co", "de: AB12CD"],
+    ["recovery_phrase", "seed ph", `rase: ${phrase}`],
+    ["private_key", "private k", "ey: ABCDEFGHIJKLMNOPQRSTUVWXYZ123456"],
+    ["access_token", "access to", "ken: abcdefgh1234567890abcd"],
+  ] as const;
+
+  it.each(
+    controls.flatMap((control) =>
+      fixtures.map(
+        ([kind, start, end]) =>
+          [kind, control.codePointAt(0)!.toString(16), `${start}${control}${end}`] as const,
+      ),
+    ),
+  )(
+    "contains %s with U+%s inside its label without emitting normalized prose",
+    (kind, _codePoint, input) => {
+      const result = sanitizeSensitiveTextForSink(`Please review this evidence. ${input}`);
+      expect(result).toMatchObject({ value: "••••", redacted: true });
+      expect(result.classes).toContain(kind);
+      expect(redactText(`Please review this evidence. ${input}`)).toBe("••••");
+    },
+  );
+
+  it.each(
+    controls.flatMap((control) => [
+      `Al${control}isher Karimov, office reception`,
+      `Do not share your pass${control}word with anyone.`,
+      `SMS co${control}de requested; no value was sent.`,
+      `Keep your seed ph${control}rase private.`,
+      `Never share an access to${control}ken.`,
+      `This document explains private k${control}ey security.`,
+    ]),
+  )("preserves ordinary names and value-free prose byte-for-byte: %s", (input) => {
+    expect(sanitizeSensitiveTextForSink(input)).toEqual({
+      value: input,
+      redacted: false,
+      classes: [],
+    });
+  });
+
+  it("does not miss a second obfuscated secret when an ordinary secret was already masked", () => {
+    const input = "password: FirstSynthetic7\npass\u200bword: SecondSynthetic8";
+    expect(sanitizeSensitiveTextForSink(input)).toEqual({
+      value: "••••",
+      redacted: true,
+      classes: ["password"],
+    });
+  });
+
+  it("contains controls inside a secret value as well as its label", () => {
+    expect(sanitizeSensitiveTextForSink("The caller asks for CVV: 6\u200b1\u200b4")).toEqual({
+      value: "••••",
+      redacted: true,
+      classes: ["code"],
+    });
+  });
+
+  it("keeps the hidden sink value idempotent without inventing a new secret", () => {
+    const first = sanitizeSensitiveTextForSink("pass\u200bword: SyntheticCanarySecret7");
+    expect(sanitizeSensitiveTextForSink(first.value)).toEqual({
+      value: "••••",
+      redacted: false,
+      classes: [],
+    });
+    expect(redactText(redactText("pass\u200bword: SyntheticCanarySecret7"))).toBe("••••");
+  });
+
+  it("checks a secret after a bounded long prefix without truncating it away", () => {
+    const prefix = "Ordinary evidence. ".repeat(250);
+    const result = sanitizeSensitiveTextForSink(`${prefix}pass\u2060word: TailCanarySecret7`);
+    expect(result).toEqual({ value: "••••", redacted: true, classes: ["password"] });
+  });
+});
+
 describe("sanitizeSensitiveTextForSink", () => {
   it.each([
     ["password", "password = Correct-Horse-Battery-Staple", "Correct-Horse-Battery-Staple"],

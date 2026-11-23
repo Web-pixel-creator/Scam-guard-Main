@@ -1,5 +1,7 @@
 # API
 
+Bank SMS, carrier commands, urgent family transfers and reported unauthorized debits use the existing check and Telegram entry points. The checker can return `operator_requests_dial_code`, `carrier_command_already_dialed` and `reported_unauthorized_debit`; no new endpoint or bank/carrier integration is added.
+
 There is no public standalone REST API yet. The web app uses TanStack Start server functions (`createServerFn`) as typed RPC from React. The Telegram bot uses one HTTP webhook endpoint.
 
 ## Server functions
@@ -11,16 +13,19 @@ It does not mean direct browser writes to Supabase tables: sensitive writes to
 | RPC                       | Auth         | Input                                                                                                | Returns                                                                                               |
 | ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `checkInput`              | public       | `{ input: 1-2000, type?, lang, embed? }`                                                             | risk result or `{ metaIntent, response }` for questions to the bot                                    |
-| `ocrExtract`              | public       | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang }`                                     | `{ text }`                                                                                            |
+| `issueOcrTicket`          | public       | `{ imageDigest, lang, externalProviderConsent: true }`                                               | `{ ticket }` — signed 10-minute single-use Web OCR capability bound to `imageDigest`                  |
+| `ocrExtract`              | public       | `{ image: png/jpeg/webp base64 dataURL <= 4 MiB decoded, lang, externalProviderConsent: true, operationTicket }` | `{ text }` — atomically consumes the issued ticket before a single provider attempt                   |
 | `getPublicStats`          | public       | none                                                                                                 | aggregate public stats; check/risk counters are raw activity, report/loss counters are confirmed-only |
 | `submitReport`            | public       | `{ value <= 500, type?, description 5-5000, scamType?, city?, amountLostUzs?, incidentOnly?, lang }` | `{ ok }` or `{ ok:false, error }`                                                                     |
 | `listReports`             | admin + AAL2 | `{ status }`                                                                                         | report rows (<= 200)                                                                                  |
 | `listEntities`            | admin + AAL2 | `{ status }`                                                                                         | entity rows (<= 200)                                                                                  |
 | `moderateReport`          | admin + AAL2 | `{ reportId, decision, riskLevel }`                                                                  | `{ ok }`                                                                                              |
-| `submitReputationAppeal`  | public       | `{ target, reason, contact?, lang }`                                                                 | `{ ok, duplicate? }` or safe error                                                                    |
+| `submitReputationAppeal`  | public       | `{ target, reason, contact?, lang }`                                                                 | non-enumerating `{ ok: true }` (atomic RPC deduplication) or safe error                               |
 | `listReputationAppeals`   | admin + AAL2 | `{ status }`                                                                                         | appeal rows                                                                                           |
 | `resolveReputationAppeal` | admin + AAL2 | `{ appealId, decision, note? }`                                                                      | `{ ok }`                                                                                              |
 | `adminStats`              | admin + AAL2 | none                                                                                                 | `{ reports_new, reports_confirmed, entities_confirmed, checks_total, appeals_new }`                   |
+
+Public routes also serve `/robots.txt` and `/sitemap.xml` dynamically, negotiate visitor language on the server via the first-party `ig_lang` cookie (`ru`/`uz`/`en`, 1 year, `SameSite=Lax`) or `Accept-Language` (`Vary: Cookie, Accept-Language`), enforce main-site CSP `script-src 'self' 'nonce-...'` without third-party script hosts, and load the Supabase client only when a signed-in admin session is present (`attachSupabaseAuthWhenSignedIn`). Public IP rate-limit keys canonicalize IPv4/IPv6 (including `::ffff:0:0/96` IPv4-mapped addresses) before HMAC hashing and honor `X-Real-IP` only when `TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`.
 
 Input validation is zod. Check/OCR rate limits throw an error with `status=429`
 and `retryAfter`; report rate limits return `{ ok:false, error:"rate_limited",

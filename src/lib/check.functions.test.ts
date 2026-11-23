@@ -3,8 +3,9 @@
 //
 // Goal: prove the web contract did NOT change once the pipeline moved into
 // `runCheck`/`ocrExtractCore`:
-//   - the rate-limit key is still IP-based, in the exact `check:<ip>` form
-//     (cf-connecting-ip → x-real-ip → getRequestIP → "unknown"), never tg:/user-based;
+//   - the rate-limit key is still IP-based, in the exact `check:<ip>` form;
+//     Railway uses X-Real-IP while generic forwarding requires explicit trust
+//     and edge verification, and neither path ever uses tg:/user identity;
 //   - `channel: "web"` is forwarded to the core;
 //   - the response is the core's `RunCheckResult` passed through verbatim
 //     (same keys, same values) — identical to the pre-refactor shape.
@@ -18,6 +19,7 @@
 //     and return a fixed `RunCheckResult`.
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { RunCheckResult } from "./risk/check-core";
+import { digestWebOcrImage } from "./web-ocr-image-digest";
 
 // ---- Hoisted, controllable mock state (referenced inside vi.mock factories) ----
 const hoisted = vi.hoisted(() => ({
@@ -28,6 +30,15 @@ const hoisted = vi.hoisted(() => ({
   // captured calls into the core
   runCheckCalls: [] as Array<Record<string, unknown>>,
   ocrCalls: [] as unknown[][],
+  ticketIssueCalls: [] as unknown[][],
+  ticketValidateCalls: [] as unknown[][],
+  ticketConsumeCalls: [] as Array<{ id: string; issuedAtMs: number; expiresAtMs: number }>,
+  usedTickets: new Set<string>(),
+  ticketIssueError: null as Error | null,
+  ticketValidateError: null as Error | null,
+  ticketConsumeError: null as Error | null,
+  providerError: null as Error | null,
+  providerTransfers: 0,
   stats: {
     rpcCalls: [] as string[],
     checkCountQueries: [] as string[],
@@ -113,8 +124,35 @@ vi.mock("./risk/check-core", () => ({
   }),
   ocrExtractCore: vi.fn(async (...args: unknown[]) => {
     hoisted.ocrCalls.push(args);
+    // Execute the boundary instead of merely asserting that a hook was passed.
+    // This is an atomic-consume model, not real DB/provider concurrency proof.
+    const options = args[3] as { beforeProviderTransfer?: () => Promise<void> };
+    await options.beforeProviderTransfer?.();
+    hoisted.providerTransfers += 1;
+    if (hoisted.providerError) throw hoisted.providerError;
     return { text: "extracted text" };
   }),
+}));
+
+vi.mock("./web-ocr-ticket.server", () => ({
+  issueWebOcrTicket: vi.fn(async (...args: unknown[]) => {
+    hoisted.ticketIssueCalls.push(args);
+    if (hoisted.ticketIssueError) throw hoisted.ticketIssueError;
+    return `issued-ticket-${hoisted.ticketIssueCalls.length}`;
+  }),
+  validateWebOcrTicket: vi.fn(async (ticket: string, digest: string, lang: string) => {
+    hoisted.ticketValidateCalls.push([ticket, digest, lang]);
+    if (hoisted.ticketValidateError) throw hoisted.ticketValidateError;
+    return { id: ticket, issuedAtMs: 1_000, expiresAtMs: 601_000 };
+  }),
+  consumeWebOcrTicket: vi.fn(
+    async (claim: { id: string; issuedAtMs: number; expiresAtMs: number }) => {
+      hoisted.ticketConsumeCalls.push(claim);
+      if (hoisted.ticketConsumeError) throw hoisted.ticketConsumeError;
+      if (hoisted.usedTickets.has(claim.id)) throw new Error("ocr_operation_unavailable");
+      hoisted.usedTickets.add(claim.id);
+    },
+  ),
 }));
 
 vi.mock("./risk/shared-rate-limit.server", () => ({
@@ -207,13 +245,22 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
-import { checkInput, getPublicStats, ocrExtract } from "./check.functions";
+import { checkInput, getPublicStats, issueOcrTicket, ocrExtract } from "./check.functions";
 
 beforeEach(() => {
   hoisted.headers = {};
   hoisted.requestIp = undefined;
   hoisted.runCheckCalls.length = 0;
   hoisted.ocrCalls.length = 0;
+  hoisted.ticketIssueCalls.length = 0;
+  hoisted.ticketValidateCalls.length = 0;
+  hoisted.ticketConsumeCalls.length = 0;
+  hoisted.usedTickets.clear();
+  hoisted.ticketIssueError = null;
+  hoisted.ticketValidateError = null;
+  hoisted.ticketConsumeError = null;
+  hoisted.providerError = null;
+  hoisted.providerTransfers = 0;
   hoisted.stats.rpcCalls.length = 0;
   hoisted.stats.checkCountQueries.length = 0;
   hoisted.stats.reportCountQueries = 0;
@@ -226,12 +273,16 @@ beforeEach(() => {
   hoisted.sharedRateLimitCalls.length = 0;
   hoisted.sharedRateLimitResults.length = 0;
   delete process.env.TRUST_PROXY_IP_HEADERS;
+  delete process.env.TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED;
+  delete process.env.RAILWAY_ENVIRONMENT_ID;
+  delete process.env.RAILWAY_ENVIRONMENT_NAME;
+  delete process.env.RAILWAY_DEPLOYMENT_ID;
 });
 
 describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
   it("ignores spoofable forwarding headers by default when building the rate-limit key", async () => {
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
-    // Other sources also set, to prove cf-connecting-ip wins (priority unchanged).
+    // Other sources are also set to prove they remain ignored without trust.
     hoisted.headers["x-real-ip"] = "198.51.100.9";
     hoisted.requestIp = "192.0.2.1";
 
@@ -243,8 +294,9 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
     expect(params.channel).toBe("web");
   });
 
-  it("uses trusted proxy headers only when explicitly enabled", async () => {
+  it("uses generic proxy headers only when trust and edge verification are enabled", async () => {
     process.env.TRUST_PROXY_IP_HEADERS = "true";
+    process.env.TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED = "true";
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
     hoisted.headers["x-real-ip"] = "198.51.100.9";
     hoisted.requestIp = "192.0.2.1";
@@ -517,18 +569,254 @@ describe("checkInput web contract (telegram-bot-mvp Task 2.3)", () => {
   });
 });
 
+describe("web OCR ticket issuance boundary", () => {
+  const imageDigest = "a".repeat(64);
+
+  it("issues a digest-only ticket through a separate purpose-keyed quota", async () => {
+    hoisted.requestIp = "192.0.2.1";
+    const result = await issueOcrTicket({
+      data: { imageDigest, lang: "en", externalProviderConsent: true },
+    });
+    expect(result).toEqual({ ticket: "issued-ticket-1" });
+    expect(hoisted.ticketIssueCalls).toEqual([[imageDigest, "en"]]);
+    expect(hoisted.sharedRateLimitCalls).toEqual([
+      { scope: "check", key: "web-ocr-ticket:check:192.0.2.1", limit: 10, windowMs: 60_000 },
+    ]);
+    expect(hoisted.ocrCalls).toEqual([]);
+    expect(hoisted.ticketConsumeCalls).toEqual([]);
+    expect(hoisted.providerTransfers).toBe(0);
+  });
+
+  it("defaults language and treats issuer replay as distinct unused tickets", async () => {
+    const request = { data: { imageDigest, externalProviderConsent: true } };
+    const first = await issueOcrTicket(request);
+    const second = await issueOcrTicket(request);
+    expect(first).not.toEqual(second);
+    expect(hoisted.ticketIssueCalls).toEqual([
+      [imageDigest, "ru"],
+      [imageDigest, "ru"],
+    ]);
+    expect(hoisted.sharedRateLimitCalls[0].key).toBe("web-ocr-ticket:check:unknown");
+    expect(hoisted.providerTransfers).toBe(0);
+  });
+
+  it.each([
+    { imageDigest },
+    { imageDigest, externalProviderConsent: false },
+    { imageDigest: "A".repeat(64), externalProviderConsent: true },
+    { imageDigest: "a".repeat(63), externalProviderConsent: true },
+    { imageDigest: "g".repeat(64), externalProviderConsent: true },
+    { imageDigest: "a".repeat(65), externalProviderConsent: true },
+    { imageDigest, externalProviderConsent: true, lang: "fr" },
+    { imageDigest, externalProviderConsent: true, image: "data:image/png;base64,AAAA" },
+  ])("rejects malformed, nonconsented or raw-image issuance payloads (%#)", async (data) => {
+    await expect(issueOcrTicket({ data: data as never })).rejects.toBeDefined();
+    expect(hoisted.sharedRateLimitCalls).toEqual([]);
+    expect(hoisted.ticketIssueCalls).toEqual([]);
+    expect(hoisted.providerTransfers).toBe(0);
+  });
+
+  it("rejects quota denial before signing and never invokes the provider", async () => {
+    hoisted.sharedRateLimitResults.push({ ok: false, retryAfterSec: 17 });
+    await expect(
+      issueOcrTicket({ data: { imageDigest, externalProviderConsent: true } }),
+    ).rejects.toMatchObject({ message: "rate_limited", status: 429, retryAfter: 17 });
+    expect(hoisted.ticketIssueCalls).toEqual([]);
+    expect(hoisted.providerTransfers).toBe(0);
+  });
+
+  it("does not silently mint again after signing failure", async () => {
+    hoisted.ticketIssueError = new Error("ocr_operation_unavailable");
+    await expect(
+      issueOcrTicket({ data: { imageDigest, externalProviderConsent: true } }),
+    ).rejects.toThrow("ocr_operation_unavailable");
+    expect(hoisted.ticketIssueCalls).toHaveLength(1);
+    expect(hoisted.providerTransfers).toBe(0);
+  });
+});
+
 describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
-  it("delegates to ocrExtractCore with image, lang and the same `check:<ip>` key", async () => {
+  it("requires a bounded operation ticket before any core call", async () => {
+    for (const operationTicket of [undefined, "", "x".repeat(513)]) {
+      await expect(
+        ocrExtract({
+          data: {
+            image: "data:image/png;base64,AAAA",
+            lang: "ru",
+            externalProviderConsent: true,
+            operationTicket,
+          },
+        }),
+      ).rejects.toBeDefined();
+    }
+    expect(hoisted.ocrCalls).toHaveLength(0);
+  });
+
+  it("requires explicit external-provider consent before delegating to OCR", async () => {
+    const image = "data:image/png;base64,AAAA";
+
+    await expect(
+      ocrExtract({ data: { image, lang: "ru", operationTicket: "ticket-a" } }),
+    ).rejects.toBeDefined();
+    await expect(
+      ocrExtract({
+        data: { image, lang: "ru", operationTicket: "ticket-a", externalProviderConsent: false },
+      }),
+    ).rejects.toBeDefined();
+
+    expect(hoisted.ocrCalls).toHaveLength(0);
+  });
+
+  it("delegates a consented image with one attempt and no provider fallback", async () => {
     hoisted.headers["cf-connecting-ip"] = "203.0.113.7";
     hoisted.requestIp = "192.0.2.1";
 
-    await ocrExtract({ data: { image: "data:image/png;base64,AAAA", lang: "en" } });
+    await ocrExtract({
+      data: {
+        image: "data:image/png;base64,AAAA",
+        lang: "en",
+        externalProviderConsent: true,
+        operationTicket: "ticket-a",
+      },
+    });
 
     expect(hoisted.ocrCalls).toHaveLength(1);
-    const [image, lang, rateLimitKey] = hoisted.ocrCalls[0];
+    const [image, lang, rateLimitKey, providerOptions] = hoisted.ocrCalls[0];
     expect(image).toBe("data:image/png;base64,AAAA");
     expect(lang).toBe("en");
     expect(rateLimitKey).toBe("check:192.0.2.1");
+    expect(providerOptions).toEqual({
+      maxAttempts: 1,
+      allowFallback: false,
+      beforeProviderTransfer: expect.any(Function),
+    });
+    expect(hoisted.ticketValidateCalls).toEqual([
+      ["ticket-a", await digestWebOcrImage(String(image)), "en"],
+    ]);
+    expect(hoisted.ticketConsumeCalls).toEqual([
+      { id: "ticket-a", issuedAtMs: 1_000, expiresAtMs: 601_000 },
+    ]);
+    expect(hoisted.providerTransfers).toBe(1);
+    expect(hoisted.sharedRateLimitCalls).toEqual([]);
+  });
+
+  it("passes one ticket identity into the consume fence across concurrent HTTP replay", async () => {
+    const data = {
+      image: "data:image/png;base64,AAAA",
+      lang: "ru" as const,
+      externalProviderConsent: true,
+      operationTicket: "ticket-a",
+    };
+    const results = await Promise.allSettled([ocrExtract({ data }), ocrExtract({ data })]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(hoisted.ocrCalls).toHaveLength(2);
+    for (const [image, lang, , options] of hoisted.ocrCalls) {
+      expect(image).toBe(data.image);
+      expect(lang).toBe("ru");
+      expect(options).toEqual({
+        maxAttempts: 1,
+        allowFallback: false,
+        beforeProviderTransfer: expect.any(Function),
+      });
+    }
+    expect(hoisted.ticketConsumeCalls).toHaveLength(2);
+    expect(hoisted.providerTransfers).toBe(1);
+    expect(hoisted.ticketIssueCalls).toEqual([]);
+  });
+
+  it("never carries consent from an earlier request into a later request", async () => {
+    const image = "data:image/png;base64,AAAA";
+    await ocrExtract({
+      data: { image, operationTicket: "ticket-a", externalProviderConsent: true },
+    });
+    await expect(
+      ocrExtract({ data: { image, operationTicket: "ticket-b" } }),
+    ).rejects.toBeDefined();
+    await expect(
+      ocrExtract({
+        data: { image, operationTicket: "ticket-b", externalProviderConsent: false },
+      }),
+    ).rejects.toBeDefined();
+    expect(hoisted.ocrCalls).toHaveLength(1);
+  });
+
+  it("rejects validation failure before the core or consume RPC", async () => {
+    hoisted.ticketValidateError = new Error("ocr_operation_unavailable");
+    await expect(
+      ocrExtract({
+        data: {
+          image: "data:image/png;base64,AAAA",
+          lang: "en",
+          operationTicket: "invalid-ticket",
+          externalProviderConsent: true,
+        },
+      }),
+    ).rejects.toThrow("ocr_operation_unavailable");
+    expect(hoisted.ticketValidateCalls).toHaveLength(1);
+    expect(hoisted.ocrCalls).toEqual([]);
+    expect(hoisted.ticketConsumeCalls).toEqual([]);
+    expect(hoisted.providerTransfers).toBe(0);
+  });
+
+  it("fails closed on consume uncertainty before the modeled provider transfer", async () => {
+    hoisted.ticketConsumeError = new Error("ocr_operation_unavailable");
+    await expect(
+      ocrExtract({
+        data: {
+          image: "data:image/png;base64,AAAA",
+          operationTicket: "ticket-a",
+          externalProviderConsent: true,
+        },
+      }),
+    ).rejects.toThrow("ocr_operation_unavailable");
+    expect(hoisted.ocrCalls).toHaveLength(1);
+    expect(hoisted.ticketConsumeCalls).toHaveLength(1);
+    expect(hoisted.providerTransfers).toBe(0);
+    expect(hoisted.ticketIssueCalls).toEqual([]);
+  });
+
+  it("does not reuse a consumed ticket after provider failure or mint a replacement", async () => {
+    const data = {
+      image: "data:image/png;base64,AAAA",
+      operationTicket: "ticket-a",
+      externalProviderConsent: true,
+    };
+    hoisted.providerError = new Error("synthetic provider failure");
+    await expect(ocrExtract({ data })).rejects.toThrow("synthetic provider failure");
+    hoisted.providerError = null;
+    await expect(ocrExtract({ data })).rejects.toThrow("ocr_operation_unavailable");
+    expect(hoisted.providerTransfers).toBe(1);
+    expect(hoisted.ticketIssueCalls).toEqual([]);
+  });
+
+  it("permits a separately issued ticket without claiming same-image deduplication", async () => {
+    for (const operationTicket of ["ticket-a", "ticket-b"]) {
+      await ocrExtract({
+        data: {
+          image: "data:image/png;base64,AAAA",
+          operationTicket,
+          externalProviderConsent: true,
+        },
+      });
+    }
+    expect(hoisted.providerTransfers).toBe(2);
+    expect(hoisted.usedTickets).toEqual(new Set(["ticket-a", "ticket-b"]));
+  });
+
+  it("binds the canonical image representation without lowering base64 case", async () => {
+    await ocrExtract({
+      data: {
+        image: " DATA:IMAGE/PNG;BASE64,aA Aa\n",
+        lang: "uz",
+        operationTicket: "ticket-a",
+        externalProviderConsent: true,
+      },
+    });
+    expect(hoisted.ticketValidateCalls).toEqual([
+      ["ticket-a", await digestWebOcrImage("data:image/png;base64,aAAa"), "uz"],
+    ]);
+    expect(hoisted.ocrCalls[0][0]).toBe("data:image/png;base64,aAAa");
   });
 
   it("rejects non-image or malformed data URLs before the OCR core", async () => {
@@ -541,7 +829,11 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
     ];
 
     for (const image of invalidImages) {
-      await expect(ocrExtract({ data: { image, lang: "ru" } })).rejects.toBeDefined();
+      await expect(
+        ocrExtract({
+          data: { image, lang: "ru", operationTicket: "ticket-a", externalProviderConsent: true },
+        }),
+      ).rejects.toBeDefined();
     }
 
     expect(hoisted.ocrCalls).toHaveLength(0);
@@ -550,14 +842,44 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
   it("rejects decoded images larger than the web screenshot byte limit", async () => {
     const oversized = `data:image/png;base64,${"A".repeat(5_600_000)}`;
 
-    await expect(ocrExtract({ data: { image: oversized, lang: "ru" } })).rejects.toBeDefined();
+    await expect(
+      ocrExtract({
+        data: {
+          image: oversized,
+          lang: "ru",
+          operationTicket: "ticket-a",
+          externalProviderConsent: true,
+        },
+      }),
+    ).rejects.toBeDefined();
     expect(hoisted.ocrCalls).toHaveLength(0);
   });
 
   it("allows png, jpeg and webp data URLs after validation", async () => {
-    await ocrExtract({ data: { image: "data:image/png;base64,AAAA", lang: "ru" } });
-    await ocrExtract({ data: { image: "data:image/jpeg;base64,BBBB", lang: "ru" } });
-    await ocrExtract({ data: { image: "data:image/webp;base64,CCCC", lang: "ru" } });
+    await ocrExtract({
+      data: {
+        image: "data:image/png;base64,AAAA",
+        lang: "ru",
+        operationTicket: "ticket-a",
+        externalProviderConsent: true,
+      },
+    });
+    await ocrExtract({
+      data: {
+        image: "data:image/jpeg;base64,BBBB",
+        lang: "ru",
+        operationTicket: "ticket-b",
+        externalProviderConsent: true,
+      },
+    });
+    await ocrExtract({
+      data: {
+        image: "data:image/webp;base64,CCCC",
+        lang: "ru",
+        operationTicket: "ticket-c",
+        externalProviderConsent: true,
+      },
+    });
 
     expect(hoisted.ocrCalls.map(([image]) => image)).toEqual([
       "data:image/png;base64,AAAA",
@@ -567,7 +889,13 @@ describe("ocrExtract web contract (telegram-bot-mvp Task 2.3)", () => {
   });
 
   it("defaults lang to 'ru' and reuses the IP-based key (unknown when no IP)", async () => {
-    await ocrExtract({ data: { image: "data:image/png;base64,BBBB" } });
+    await ocrExtract({
+      data: {
+        image: "data:image/png;base64,BBBB",
+        operationTicket: "ticket-a",
+        externalProviderConsent: true,
+      },
+    });
 
     const [, lang, rateLimitKey] = hoisted.ocrCalls[0];
     expect(lang).toBe("ru");

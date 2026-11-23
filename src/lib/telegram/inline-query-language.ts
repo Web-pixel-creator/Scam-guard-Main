@@ -31,6 +31,11 @@ const UZ_COMPLETED_ACTION_PHRASE_RE =
 // language-specific function words or inflected words, while "SMS code" and
 // bare artefacts remain genuinely ambiguous.
 const UZ_SIGNALS = new Set([
+  "salom",
+  "maslahat",
+  "mana",
+  "yuborgan",
+  "xabari",
   "aldov",
   "almashtirish",
   "ayting",

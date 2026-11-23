@@ -37,6 +37,49 @@ const PHONE_PASSPORT_RESULT: CheckResult = {
 };
 
 describe("EmbedResult risk passport", () => {
+  it.each([
+    [
+      "ru",
+      "Никому не говорите код из SMS.",
+      "Не звоните по номеру из сообщения.",
+      "приложение своего банка",
+    ],
+    [
+      "uz",
+      "SMS kodini hech kimga aytmang.",
+      "Xabardagi raqamga qo‘ng‘iroq qilmang.",
+      "Bank ilovasidagi yordam xizmatiga",
+    ],
+    [
+      "en",
+      "Do not share the SMS code.",
+      "Do not call the number in the message.",
+      "your own banking app",
+    ],
+  ] as const)(
+    "keeps code protection first and gives an independent banking route in %s",
+    (lang, first, callback, app) => {
+      const html = renderToStaticMarkup(
+        <EmbedResult
+          lang={lang}
+          reportedBankSms="callback"
+          result={{
+            ...PHONE_PASSPORT_RESULT,
+            type: "text",
+            level: "suspicious",
+            reasons: ["asks_for_sms_code"],
+            phoneIntelligence: null,
+          }}
+        />,
+      );
+      expect(html).toContain(first);
+      expect(html).toContain(callback);
+      expect(html).toContain(app);
+      expect(html.indexOf(first)).toBeLessThan(html.indexOf(callback));
+      expect(html).not.toMatch(/href=|tel:/);
+    },
+  );
+
   it("renders phone passport sections compactly instead of generic advice", () => {
     const html = renderToStaticMarkup(<EmbedResult result={PHONE_PASSPORT_RESULT} lang="en" />);
 

@@ -1,7 +1,10 @@
 import type { Lang } from "@/lib/i18n";
 import { evaluateText, type ReasonCode } from "@/lib/risk/rules";
 import { hasConcreteArtifact } from "@/lib/telegram/concrete-artifact";
-import { stripConversationWrappers } from "@/lib/telegram/conversation-wrapper";
+import {
+  stripConversationWrappers,
+  stripScenarioLeadIns,
+} from "@/lib/telegram/conversation-wrapper";
 import { bt } from "@/lib/telegram/bot-i18n";
 
 export const ALL_META_INTENTS = [
@@ -402,6 +405,8 @@ const META_RISK_OVERRIDE_REASONS = new Set<ReasonCode>([
   "telegram_account_takeover_phishing",
   "dropper_recruitment",
   "authority_coerced_dangerous_act",
+  "carrier_command_already_dialed",
+  "operator_requests_dial_code",
   "fake_penalty_points_erasure",
   "threatens_physical_violence",
 ]);
@@ -513,7 +518,7 @@ export function classifyMetaIntent(
   if (!normalized) return null;
   if (options.isForwarded) return null;
   if (hasConcreteArtifact(normalized)) return null;
-  const conversationalText = stripConversationWrappers(normalized);
+  const conversationalText = stripConversationWrappers(stripScenarioLeadIns(normalized));
   if (!conversationalText) return null;
   if (hasDeterministicRiskOverride(normalized)) return null;
   const hasBroadScamContext = hasScamContextSignal(normalized);

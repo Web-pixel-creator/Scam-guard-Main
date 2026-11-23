@@ -1,75 +1,192 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
-  Link,
   createRootRouteWithContext,
   useRouter,
   useRouterState,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
 import { LangProvider, useLang } from "@/lib/lang-context";
-import { AuthProvider } from "@/lib/auth-context";
+import type { Lang } from "@/lib/i18n";
+import { detectPublicOrigin, detectRequestLang } from "@/lib/lang-request";
+import { PAGE_META, SITE_NAME, pageForPath, pageHead, pageUrl } from "@/lib/page-meta";
+import { HOME_COPY } from "@/components/home/home-copy";
+import display500Cyrillic from "../assets/fonts/inter/inter-display-500-cyrillic.woff2?url";
+import display500Latin from "../assets/fonts/inter/inter-display-500-latin.woff2?url";
+import display600Cyrillic from "../assets/fonts/inter/inter-display-600-cyrillic.woff2?url";
+import display600Latin from "../assets/fonts/inter/inter-display-600-latin.woff2?url";
 import { Header, Footer } from "@/components/Layout";
 import { A11yPanel } from "@/components/A11yPanel";
 import { useEffect } from "react";
 import { safeClientErrorReason } from "@/lib/client-error";
+import { ArrowClockwise, WarningCircle } from "@phosphor-icons/react";
+import { Pill, PillButton } from "@/components/viper/kit";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
 
+// Homepage only: its lead and headline re-wrapped when Inter swapped in (lab
+// CLS 0.39). Preloading on every page cost 0.15-0.3 s of first paint on slow
+// 4G for little gain there; the metric-matched fallbacks cover the rest.
+const HOME_PRELOAD_FONTS = [
+  display500Cyrillic,
+  display500Latin,
+  display600Cyrillic,
+  display600Latin,
+];
+
+type HeadMatch = { pathname: string };
+
+const ADMIN_PATHS = new Set(["/login", "/admin", "/admin-mfa"]);
+function isAdminPath(matches: readonly HeadMatch[]) {
+  return ADMIN_PATHS.has(matches[matches.length - 1]?.pathname ?? "");
+}
+
+// Title, description, social tags, canonical and robots for the current page
+// in the visitor's language; the homepage also gets font preloads and JSON-LD.
+function pageHeadFor(matches: readonly HeadMatch[], data?: { lang: Lang; origin: string }) {
+  const lang = data?.lang ?? "ru";
+  const origin = data?.origin ?? "";
+  const path = pageForPath(matches[matches.length - 1]?.pathname ?? "/");
+  if (!path) {
+    return {
+      meta: [
+        { title: PAGE_META["/"].ogTitle[lang] },
+        { name: "description", content: PAGE_META["/"].description[lang] },
+      ],
+      links: [],
+      scripts: [],
+    };
+  }
+  const head = pageHead(path, { lang, origin });
+  if (path !== "/") return { ...head, scripts: [] };
+  const home = pageUrl("/", origin);
+  return {
+    meta: head.meta,
+    links: [
+      ...head.links,
+      ...HOME_PRELOAD_FONTS.map((href) => ({
+        rel: "preload",
+        href,
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous" as const,
+      })),
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: SITE_NAME,
+              url: home,
+              description: PAGE_META["/"].description[lang],
+              areaServed: "UZ",
+            },
+            { "@type": "WebSite", name: SITE_NAME, url: home, inLanguage: ["ru", "uz", "en"] },
+            {
+              "@type": "FAQPage",
+              inLanguage: lang,
+              // Same text as the visible FAQ, so structured data never drifts.
+              mainEntity: HOME_COPY[lang].faq.items.map((item) => ({
+                "@type": "Question",
+                name: item.q,
+                acceptedAnswer: { "@type": "Answer", text: item.a },
+              })),
+            },
+          ],
+        }),
+      },
+    ],
+  };
+}
+
+const FALLBACK_COPY = {
+  ru: {
+    notFound: "Страница не найдена",
+    notFoundText: "Возможно, она была перемещена или никогда не существовала.",
+    home: "На главную",
+    check: "Проверить сообщение",
+    failed: "Не удалось загрузить страницу",
+    failedText: "Что-то пошло не так. Попробуйте обновить или вернитесь на главную.",
+    retry: "Повторить",
+  },
+  uz: {
+    notFound: "Sahifa topilmadi",
+    notFoundText: "Ehtimol, u ko‘chirilgan yoki umuman bo‘lmagan.",
+    home: "Bosh sahifa",
+    check: "Xabarni tekshirish",
+    failed: "Sahifani yuklab bo‘lmadi",
+    failedText: "Nimadir xato ketdi. Sahifani yangilang yoki bosh sahifaga qayting.",
+    retry: "Qayta urinish",
+  },
+  en: {
+    notFound: "Page not found",
+    notFoundText: "It may have moved or never existed.",
+    home: "Home",
+    check: "Check a message",
+    failed: "The page could not load",
+    failedText: "Something went wrong. Reload the page or go back home.",
+    retry: "Try again",
+  },
+} as const;
+
 function NotFoundComponent() {
+  const copy = FALLBACK_COPY[useLang().lang];
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Страница не найдена</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Возможно, она была перемещена или никогда не существовала.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            На главную
-          </Link>
+    <div className="vp-home vp-page">
+      <div className="vp-shell">
+        <div className="vp-done">
+          <span className="vp-done-code">404</span>
+          <h1>{copy.notFound}</h1>
+          <p>{copy.notFoundText}</p>
+          <div className="vp-actions">
+            <Pill to="/">{copy.home}</Pill>
+            <Pill to="/check" tone="outline">
+              {copy.check}
+            </Pill>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error("route render failed", safeClientErrorReason(error));
   const router = useRouter();
+  // Outside LangProvider (a root failure) this falls back to Russian.
+  const copy = FALLBACK_COPY[useLang().lang];
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Не удалось загрузить страницу
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Что-то пошло не так. Попробуйте обновить или вернитесь на главную.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Повторить
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
-          >
-            На главную
-          </a>
+    <div className="vp-home vp-page">
+      <div className="vp-shell">
+        <div className="vp-done">
+          <span className="vp-done-icon vp-done-icon--alert" aria-hidden="true">
+            <WarningCircle weight="fill" />
+          </span>
+          <h1>{copy.failed}</h1>
+          <p>{copy.failedText}</p>
+          <div className="vp-actions">
+            <PillButton
+              icon={<ArrowClockwise weight="bold" />}
+              onClick={() => {
+                router.invalidate();
+                reset();
+              }}
+            >
+              {copy.retry}
+            </PillButton>
+            <Pill href="/" tone="outline">
+              {copy.home}
+            </Pill>
+          </div>
         </div>
       </div>
     </div>
@@ -77,45 +194,47 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Ishonch Guard — антискам-помощник для Узбекистана" },
-      {
-        name: "description",
-        content:
-          "Проверьте номер, Telegram, ссылку или текст сообщения и получите понятный risk score. Защитите себя от телефонных и SMS-мошенников в Узбекистане.",
-      },
-      { name: "author", content: "Ishonch Guard" },
-      { property: "og:title", content: "Ishonch Guard — антискам-помощник для Узбекистана" },
-      {
-        property: "og:description",
-        content: "Распознайте мошенников до того, как потеряете деньги. Бесплатно, на 3 языках.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      {
-        rel: "icon",
-        type: "image/svg+xml",
-        href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M32 10l18 7v13c0 12-7.5 21.5-18 24-10.5-2.5-18-12-18-24V17l18-7z' fill='%2314b8a6'/%3E%3Cpath d='M24 32l5 5 12-14' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
-      },
-      // Preconnect to backend (Supabase) so the first check request opens TCP/TLS in parallel
-      ...(supabaseUrl
-        ? [
-            {
-              rel: "preconnect",
-              href: supabaseUrl,
-              crossOrigin: "anonymous" as const,
-            },
-            { rel: "dns-prefetch", href: supabaseUrl },
-          ]
-        : []),
-    ],
-  }),
+  // Resolved once per document on the server and dehydrated: later client
+  // navigations keep it, language switches go through LangProvider.
+  loader: () => ({ lang: detectRequestLang(), origin: detectPublicOrigin() }),
+  staleTime: Infinity,
+  shouldReload: false,
+  head: ({ loaderData, matches }) => {
+    const page = pageHeadFor(matches, loaderData);
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        ...page.meta,
+        { name: "author", content: SITE_NAME },
+        { property: "og:site_name", content: SITE_NAME },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
+      ],
+      links: [
+        ...page.links,
+        { rel: "stylesheet", href: appCss },
+        {
+          rel: "icon",
+          type: "image/svg+xml",
+          href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M32 10l18 7v13c0 12-7.5 21.5-18 24-10.5-2.5-18-12-18-24V17l18-7z' fill='%2314b8a6'/%3E%3Cpath d='M24 32l5 5 12-14' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+        },
+        // Only the login/admin pages talk to Supabase from the browser (public
+        // checks go through server functions), so only they preconnect.
+        ...(supabaseUrl && isAdminPath(matches)
+          ? [
+              {
+                rel: "preconnect",
+                href: supabaseUrl,
+                crossOrigin: "anonymous" as const,
+              },
+              { rel: "dns-prefetch", href: supabaseUrl },
+            ]
+          : []),
+      ],
+      scripts: page.scripts,
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -123,8 +242,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  const { lang } = Route.useLoaderData();
   return (
-    <html lang="ru">
+    <html lang={lang}>
       <head>
         <HeadContent />
       </head>
@@ -138,56 +258,44 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { lang } = Route.useLoaderData();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isEmbedCheck = pathname === "/embed/check";
   const isAdmin = pathname === "/admin" || pathname === "/admin-mfa";
-  const isHomepage = pathname === "/";
   return (
     <QueryClientProvider client={queryClient}>
-      <LangProvider>
-        <AuthProvider>
-          <LangSync />
-          <div className={isEmbedCheck ? "min-h-screen" : "min-h-screen flex flex-col"}>
-            {!isEmbedCheck && !isAdmin && <Header />}
-            <main className="flex-1">
-              <Outlet />
-            </main>
-            {!isEmbedCheck && !isAdmin && !isHomepage && <Footer />}
-          </div>
-          {!isEmbedCheck && !isAdmin && <A11yPanel />}
-        </AuthProvider>
+      <LangProvider initialLang={lang}>
+        <LangSync />
+        {!isEmbedCheck && <SkipLink />}
+        <div className={isEmbedCheck ? "min-h-screen" : "min-h-screen flex flex-col"}>
+          {!isEmbedCheck && !isAdmin && <Header />}
+          <main id="content" tabIndex={-1} className="flex-1">
+            <Outlet />
+          </main>
+          {!isEmbedCheck && !isAdmin && <Footer />}
+        </div>
+        {!isEmbedCheck && !isAdmin && <A11yPanel />}
       </LangProvider>
     </QueryClientProvider>
   );
 }
 
-// Keeps <html lang>, document.title and meta description in sync with the
-// active language. SSR sets a default "ru" shell; this runs on the client and
-// re-applies on every language change so /, /check, etc. show the right
-// language metadata without per-route head() duplication.
+// First Tab stop on every page: jumps past the header straight to the content.
+function SkipLink() {
+  const { lang } = useLang();
+  return (
+    <a href="#content" className="vp-skip">
+      {{ ru: "Перейти к содержанию", uz: "Asosiy qismga o‘tish", en: "Skip to content" }[lang]}
+    </a>
+  );
+}
+
+// Keeps <html lang> in step with a language switch until the root loader
+// re-runs; titles and descriptions come from each route's head (page-meta).
 function LangSync() {
   const { lang } = useLang();
   useEffect(() => {
-    if (typeof document === "undefined") return;
     document.documentElement.lang = lang;
-    const titles = {
-      ru: "Ishonch Guard — проверьте номер, Telegram или ссылку до того, как вас обманут",
-      uz: "Ishonch Guard — aldanishdan oldin raqam, Telegram yoki havolani tekshiring",
-      en: "Ishonch Guard — check a number, Telegram or link before you get scammed",
-    } as const;
-    const descs = {
-      ru: "Бесплатный антискам-помощник для Узбекистана. Проверьте подозрительный номер, ссылку, Telegram или текст за секунды.",
-      uz: "O‘zbekiston uchun bepul antiskam-yordamchi. Shubhali raqam, havola, Telegram yoki matnni soniyalarda tekshiring.",
-      en: "Free anti-scam helper for Uzbekistan. Check a suspicious number, link, Telegram or text in seconds.",
-    } as const;
-    document.title = titles[lang];
-    const setMeta = (sel: string, content: string) => {
-      const el = document.head.querySelector<HTMLMetaElement>(sel);
-      if (el) el.setAttribute("content", content);
-    };
-    setMeta('meta[name="description"]', descs[lang]);
-    setMeta('meta[property="og:title"]', titles[lang]);
-    setMeta('meta[property="og:description"]', descs[lang]);
   }, [lang]);
   return null;
 }

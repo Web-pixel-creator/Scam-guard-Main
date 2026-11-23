@@ -22,8 +22,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    // No tests exist yet (this is the setup task); also avoids spurious
-    // failures when a run is filtered to a path that matches no tests.
+    // Large in-process dialogue corpora are CPU-bound. Bound file concurrency
+    // on high-core hosts; keep each test's deadline and isolation unchanged.
+    maxWorkers: 2,
+    // Preserve the existing behavior for optional, narrowly filtered runs.
     passWithNoTests: true,
   },
 });

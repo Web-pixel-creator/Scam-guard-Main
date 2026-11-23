@@ -322,6 +322,25 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      claim_web_ocr_ticket: {
+        Args: {
+          p_ticket_id: string;
+          p_issued_at_ms: number;
+          p_expires_at_ms: number;
+        };
+        Returns: boolean;
+      };
+      submit_reputation_appeal: {
+        Args: {
+          p_target_type: Database["public"]["Enums"]["input_type"];
+          p_target_hashes: Json;
+          p_target_display: string;
+          p_reason: string;
+          p_contact_hashes: Json;
+          p_contact_display: string | null;
+        };
+        Returns: { accepted: boolean; notify_moderation: boolean }[];
+      };
       get_check_stats: {
         Args: never;
         Returns: {

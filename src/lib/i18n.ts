@@ -33,6 +33,21 @@ export const t_dict: Dict = {
     en: "Paste a number, Telegram username, link or message text…",
   },
   check_now: { ru: "Проверить риск", uz: "Xavfni tekshirish", en: "Check risk" },
+  check_input_required: {
+    ru: "Введите номер, ссылку, username или текст сообщения.",
+    uz: "Raqam, havola, username yoki xabar matnini kiriting.",
+    en: "Enter a number, link, username or message text.",
+  },
+  check_input_too_short: {
+    ru: "Слишком короткий ввод — минимум {min} символа.",
+    uz: "Matn juda qisqa — kamida {min} ta belgi kiriting.",
+    en: "Input is too short — enter at least {min} characters.",
+  },
+  check_input_too_long: {
+    ru: "Слишком длинный текст — максимум {max} символов.",
+    uz: "Matn juda uzun — ko‘pi bilan {max} ta belgi kiriting.",
+    en: "Text is too long — use at most {max} characters.",
+  },
   check_hint: {
     ru: "Проверка занимает несколько секунд. Мы не сохраняем полные номера и коды.",
     uz: "Tekshirish bir necha soniya oladi. To‘liq raqam va kodlarni saqlamaymiz.",
@@ -129,9 +144,9 @@ export const t_dict: Dict = {
   },
   remove_screenshot: { ru: "Удалить", uz: "O‘chirish", en: "Remove" },
   screenshot_warning: {
-    ru: "Перед анализом мы автоматически маскируем OTP-коды, номера карт и телефоны. Картинка не сохраняется в базе — мы храним только обезличенный текст.",
-    uz: "Tahlildan oldin OTP kodlar, karta va telefon raqamlari avtomatik niqoblanadi. Rasm bazada saqlanmaydi — faqat shaxsiy ma’lumotlarsiz matn saqlanadi.",
-    en: "Before analysis we automatically mask OTP codes, card numbers and phones. The image is not stored — we keep only the redacted text.",
+    ru: "Для распознавания исходный скриншот будет один раз отправлен настроенному внешнему сервису анализа. До отправки мы не можем скрыть данные внутри картинки: сначала обрежьте или закройте OTP-коды, пароли, номера карт и телефоны. Картинка не сохраняется в нашей базе.",
+    uz: "Matnni aniqlash uchun asl skrinshot sozlangan tashqi tahlil xizmatiga bir marta yuboriladi. Yuborishdan oldin rasmdagi ma’lumotlarni yashira olmaymiz: avval OTP kodlari, parollar, karta va telefon raqamlarini kesib tashlang yoki yoping. Rasm bizning bazamizda saqlanmaydi.",
+    en: "To recognize text, the original screenshot will be sent once to the configured external analysis service. We cannot hide data inside the image before it is sent: crop or cover OTP codes, passwords, card numbers and phone numbers first. The image is not stored in our database.",
   },
   screenshot_too_large: {
     ru: "Файл слишком большой. Максимум 4 МБ.",
@@ -155,6 +170,11 @@ export const t_dict: Dict = {
     en: "Review and edit the text before sending it for analysis. Sensitive data (OTP, cards, phones) is already masked.",
   },
   ocr_check_this: { ru: "Проверить этот текст", uz: "Bu matnni tekshirish", en: "Check this text" },
+  ocr_consent_send: {
+    ru: "Отправить один раз и распознать",
+    uz: "Bir marta yuborish va aniqlash",
+    en: "Send once and recognize",
+  },
   ocr_cancel: { ru: "Отменить", uz: "Bekor qilish", en: "Cancel" },
   ocr_recognizing: { ru: "Распознаю текст…", uz: "Matnni aniqlanmoqda…", en: "Recognizing text…" },
   ocr_failed: {

@@ -427,6 +427,11 @@ const INDEXED_SECRET_ROUTE_CASES = SECRET_ROUTE_CASES.map((testCase, index) => (
   ...testCase,
   index,
 }));
+// A short synthetic secret can coincidentally occur in wall-clock metadata.
+// Freeze Date only, not scheduling/performance clocks, and keep every sink in
+// the strict leak scan. This must never become an exclusion for timestamp fields.
+const ROUTE_HARNESS_TIME = "2026-10-11T08:00:00.000Z";
+const realSetTimeout = globalThis.setTimeout;
 
 function sessionFor(lang: Lang, userId: number): Session {
   return {
@@ -449,6 +454,8 @@ describe("sensitive-secret Direct and Inline route preflight", () => {
   let fetchGuard: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(ROUTE_HARNESS_TIME));
     h.answerCalls.length = 0;
     h.sentMessages.length = 0;
     h.runCheckCalls.length = 0;
@@ -461,7 +468,53 @@ describe("sensitive-secret Direct and Inline route preflight", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it("uses a collision-free Date fixture without replacing real scheduling", () => {
+    expect(new Date().toISOString()).toBe(ROUTE_HARNESS_TIME);
+    expect(globalThis.setTimeout).toBe(realSetTimeout);
+    for (const testCase of SECRET_ROUTE_CASES) {
+      expectNoRawSecret(ROUTE_HARNESS_TIME, testCase.leakMarkers, testCase.name);
+      expectNoRawSecret(String(Date.now()), testCase.leakMarkers, testCase.name);
+    }
+  });
+
+  it.each([
+    ["122", false],
+    ["123", true],
+    ["124", false],
+  ] as const)("characterizes the real Direct timestamp collision at .%s", async (ms, collision) => {
+    const time = `2026-10-11T08:00:00.${ms}Z`;
+    vi.setSystemTime(new Date(time));
+    await handleCheck("123?", {
+      chatId: 9_820_037,
+      userId: 9_810_037,
+      session: sessionFor("ru", 9_810_037),
+    });
+    expect(h.sessionWrites).toHaveLength(1);
+    const write = h.sessionWrites[0] as {
+      patch: { scenarioData: { lastSensitiveSecret: { at: string } } };
+    };
+    expect(write.patch.scenarioData.lastSensitiveSecret.at).toBe(time);
+    expect(JSON.stringify(write)).not.toContain("123?");
+    const assertion = () => expectNoRawSecret(JSON.stringify(write), ["123"], "whole session");
+    if (collision) expect(assertion).toThrow();
+    else expect(assertion).not.toThrow();
+    expectNoRawSecret(JSON.stringify(h.sentMessages), ["123"], "visible reply");
+    expect(h.runCheckCalls).toEqual([]);
+    expect(h.sharedRateLimitCalls).toEqual([]);
+    expect(fetchGuard).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { text: "123" },
+    { value: 123 },
+    { nested: { input: "123?" } },
+    { at: "2026-10-11T08:00:00.123Z" },
+  ])("keeps the strict secret oracle effective for every field: %j", (payload) => {
+    expect(() => expectNoRawSecret(JSON.stringify(payload), ["123"], "canary leak")).toThrow();
   });
 
   it.each(INDEXED_SECRET_ROUTE_CASES)(

@@ -68,14 +68,14 @@ export const SCHEME_TREND_SOURCE_LABELS: Record<SchemeTrendSource, LocalizedText
     en: "Covered by Ishonch Guard rules",
   },
   research_feed: {
-    ru: "Research feed + покрытие правилами",
-    uz: "Research feed + qoidalar",
-    en: "Research feed + rules coverage",
+    ru: "Мониторинг новостей + правила",
+    uz: "Yangiliklar monitoringi + qoidalar",
+    en: "News monitoring + rules coverage",
   },
   moderated_aggregate: {
-    ru: "Модерируемые агрегаты + правила",
-    uz: "Moderatsiyalangan agregatlar + qoidalar",
-    en: "Moderated aggregates + rules",
+    ru: "Проверенные жалобы + правила",
+    uz: "Tekshirilgan shikoyatlar + qoidalar",
+    en: "Moderated reports + rules",
   },
 };
 

@@ -4,7 +4,11 @@ import { VERIFIED_CONTACTS } from "@/lib/risk/verified-contacts";
 import { evaluateText, REASON_LABELS, type ReasonCode, type RiskLevel } from "@/lib/risk/rules";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
 import { hasConcreteArtifact } from "@/lib/telegram/concrete-artifact";
-import { stripConversationWrappers } from "@/lib/telegram/conversation-wrapper";
+import {
+  stripConversationWrappers,
+  stripScenarioLeadIns,
+} from "@/lib/telegram/conversation-wrapper";
+import { classifyVictimIntent } from "@/lib/telegram/victim-intent";
 import {
   collectResultReasonCodesForPresentation,
   INLINE_REASON_POLICY,
@@ -156,6 +160,7 @@ const FRESH_CHECK_RISK_REASONS = new Set<ReasonCode>([
   "crypto_casino_bonus_funnel",
   "fake_captcha_or_voting",
   "task_reward_engagement_bait",
+  "task_withdrawal_payment",
   "wallet_action_urgency",
   "ton_referral_earning_scheme",
   "investment_fast_profit_pitch",
@@ -180,7 +185,10 @@ function hasNewCheckPayload(text: string): boolean {
     hasConcreteArtifact(text) ||
     NEW_SCAM_REQUEST_RE.test(text) ||
     NEW_PERSONAL_DATA_REQUEST_RE.test(text) ||
-    hasFreshDeterministicRisk(text)
+    hasFreshDeterministicRisk(text) ||
+    // A concrete bank impersonation incident must not become the generic
+    // "they ask me to confirm" follow-up, even when no code is quoted yet.
+    classifyVictimIntent(text)?.kind === "bank_call"
   );
 }
 
@@ -430,7 +438,7 @@ export function classifyLastCheckFollowUp(
   const boundedRuLatinAction = classifyBoundedRuLatinFollowUp(original);
   if (boundedRuLatinAction) return boundedRuLatinAction;
   if (hasNewCheckPayload(original)) return null;
-  const trimmed = stripConversationWrappers(original);
+  const trimmed = stripConversationWrappers(stripScenarioLeadIns(original));
   if (!trimmed) return null;
   if (PROCEDURAL_CHECK_RE.test(trimmed)) return null;
 
@@ -482,7 +490,7 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
   const boundedRuLatinAction = classifyBoundedRuLatinFollowUp(original);
   if (boundedRuLatinAction) return boundedRuLatinAction;
   if (hasNewCheckPayload(original)) return null;
-  const trimmed = stripConversationWrappers(original);
+  const trimmed = stripConversationWrappers(stripScenarioLeadIns(original));
   if (!trimmed) return null;
   if (PROCEDURAL_CHECK_RE.test(trimmed)) return null;
 
@@ -530,7 +538,7 @@ export function classifyOrphanCheckFollowUp(text: string): LastCheckFollowUpActi
 export function classifyAcknowledgementFollowUp(text: string): "acknowledgement" | null {
   const original = text.trim();
   if (!original || hasNewCheckPayload(original)) return null;
-  const trimmed = stripConversationWrappers(original);
+  const trimmed = stripConversationWrappers(stripScenarioLeadIns(original));
   if (!trimmed) return null;
   if (classifyGoldenFollowUpPhrase(trimmed) === "acknowledgement") return "acknowledgement";
   if (ACKNOWLEDGEMENT_RE.test(trimmed) || isPureGratitudePhrase(trimmed)) {

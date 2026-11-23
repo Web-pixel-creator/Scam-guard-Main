@@ -30,12 +30,19 @@ export function buildEmbedWidgetUrl(baseUrl: string, options: EmbedWidgetOptions
   return url.toString();
 }
 
+const EMBED_IFRAME_TITLE: Record<Lang, string> = {
+  ru: "Проверка на мошенничество — Ishonch Guard",
+  uz: "Firibgarlikni tekshirish — Ishonch Guard",
+  en: "Ishonch Guard scam check",
+};
+
 export function buildEmbedIframeSnippet(baseUrl: string, options: EmbedWidgetOptions = {}): string {
   const src = escapeHtmlAttribute(buildEmbedWidgetUrl(baseUrl, options));
+  const title = escapeHtmlAttribute(EMBED_IFRAME_TITLE[normalizeEmbedLang(options.lang)]);
   return [
     `<iframe`,
     `  src="${src}"`,
-    `  title="Ishonch Guard scam check"`,
+    `  title="${title}"`,
     `  width="100%"`,
     `  height="${EMBED_WIDGET_HEIGHT}"`,
     `  style="border:0;max-width:520px;width:100%;border-radius:8px;overflow:hidden;"`,

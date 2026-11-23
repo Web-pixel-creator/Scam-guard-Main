@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { REASON_LABELS, type ReasonCode } from "@/lib/risk/rules";
 import type { Session } from "@/lib/telegram/session.server";
+import { DOCUMENT_DISCLOSURE_CASES } from "@/lib/telegram/__qa__/document-disclosure-fixtures";
 
 const hoisted = vi.hoisted(() => ({
   runCheckCalls: [] as Array<Record<string, unknown>>,
@@ -125,6 +126,41 @@ describe("handleInlineQuery", () => {
     vi.unstubAllEnvs();
   });
 
+  it.each(DOCUMENT_DISCLOSURE_CASES)(
+    "document semantics $expected: $text",
+    async ({ text, lang, expected }) => {
+      const fetchGuard = vi.fn(() => {
+        throw new Error("document semantics must stay offline");
+      });
+      vi.stubGlobal("fetch", fetchGuard);
+      try {
+        await handleInlineQuery(
+          text,
+          { userId: 42, session: { ...session, lang } },
+          "iq-document-boundary",
+        );
+        expect(hoisted.answerCalls).toHaveLength(1);
+        const article = hoisted.answerCalls[0].results[0] as { id: string };
+        const semanticId = scopedArticleSemanticId(article.id);
+        if (expected === "aftercare") expect(semanticId).toContain("personal-data-aftercare");
+        else expect(semanticId).not.toContain("personal-data-aftercare");
+        if (expected === "official_only") expect(semanticId).not.toContain("personal-data");
+        for (const call of hoisted.runCheckCalls) {
+          expect(call).toMatchObject({
+            input: text,
+            skipAi: true,
+            skipUrlReputation: true,
+            persist: false,
+          });
+        }
+        expect(hoisted.sessionWriteCalls).toHaveLength(0);
+        expect(fetchGuard).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
   it("returns a help article for an empty inline query", async () => {
     await handleInlineQuery("   ", { userId: 42, session }, "iq-help");
 
@@ -139,6 +175,77 @@ describe("handleInlineQuery", () => {
     expect(article.type).toBe("article");
     expectScopedArticleId(article.id, "help");
   });
+
+  it.each([
+    [
+      "Can you check this: I already sent my passport photo to a stranger",
+      "personal-data-aftercare",
+    ],
+    ["Паспорт я отправил незнакомцу", "personal-data-aftercare"],
+    ["Я уже отправил ПИНФЛ незнакомцу", "personal-data-aftercare"],
+    ["Я передал ИНН незнакомцу", "personal-data-aftercare"],
+    ["I already shared my tax ID with a stranger", "personal-data-aftercare"],
+    ["Men PINFL raqamimni notanish odamga yubordim", "personal-data-aftercare"],
+    ["Men STIR raqamimni notanish odamga berdim", "personal-data-aftercare"],
+    ["My passport I already sent to a stranger.", "personal-data-aftercare"],
+    ["My passport, I already sent to a stranger.", "personal-data-aftercare"],
+    ["Men PINni notanish odamga yubordim.", "sent-code"],
+    ["Men PINimni notanish odamga yubordim.", "sent-code"],
+    ["They sent me this: a stranger asks me to send a passport photo", "personal-data"],
+    ["Can you check this: they ask me to vote in a channel and open a link", "voting-link"],
+    ["Can you check this: they force me to pay a tax through a link they sent", "tax-payment"],
+    ["Can you check this: they blackmail me with my photos and demand payment", "blackmail-threat"],
+    [
+      "Can you check this: a stranger messages me and asks me to follow instructions",
+      "unknown-contact",
+    ],
+    [
+      "Can you check this: fake support asks me to disable account protection",
+      "support-impersonation",
+    ],
+    [
+      "Can you check this: they tell me to call the bank using a number from an SMS",
+      "bank-contact",
+    ],
+  ])("keeps concrete scenario priority through a natural lead-in: %s", async (query, expected) => {
+    await handleInlineQuery(query, { userId: 42, session }, "iq-natural-lead-in");
+    expect(hoisted.answerCalls).toHaveLength(1);
+    const article = hoisted.answerCalls[0].results[0] as { id: string };
+    expect(scopedArticleSemanticId(article.id).endsWith(`-${expected}`), article.id).toBe(true);
+    expect(scopedArticleSemanticId(article.id)).not.toContain("meta-");
+    for (const call of hoisted.runCheckCalls) {
+      expect(call).toMatchObject({ skipAi: true, skipUrlReputation: true, persist: false });
+    }
+    expect(hoisted.sessionWriteCalls).toHaveLength(0);
+  });
+
+  it.each([
+    "Он написал: я отправил паспорт незнакомцу",
+    "Незнакомец пишет: я уже отправил паспорт",
+    "Если я отправил паспорт незнакомцу, что произойдет?",
+    "They wrote: I sent a passport photo to a stranger",
+    "A stranger asked for my passport, I sent only a refusal",
+    "I sent a refusal, but a stranger still asks for my passport",
+    "U yozdi: men pasport rasmini yubordim",
+    "Незнакомец пишет: я отправил ПИНФЛ",
+    "They shared their tax ID with me",
+    "I have not sent my tax ID to a stranger",
+    "Men PINFL raqamimni notanish odamga yubormadim",
+    "My passport, I have not sent to a stranger.",
+    "My passport, they already sent to a stranger.",
+  ])(
+    "does not turn another actor, hypothetical or different object into completed disclosure: %s",
+    async (query) => {
+      await handleInlineQuery(query, { userId: 42, session }, "iq-passport-polarity");
+      expect(hoisted.answerCalls).toHaveLength(1);
+      const article = hoisted.answerCalls[0].results[0] as { id: string };
+      expect(scopedArticleSemanticId(article.id)).not.toContain("personal-data-aftercare");
+      for (const call of hoisted.runCheckCalls) {
+        expect(call).toMatchObject({ skipAi: true, skipUrlReputation: true, persist: false });
+      }
+      expect(hoisted.sessionWriteCalls).toHaveLength(0);
+    },
+  );
 
   it("uses a validated configured bot username in Inline copy and the continue button", async () => {
     vi.stubEnv("TELEGRAM_BOT_USERNAME", "@custom_guard_bot");

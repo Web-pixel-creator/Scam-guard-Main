@@ -350,6 +350,7 @@ const TELEGRAM_SIGNAL_ORDER: readonly ReasonCode[] = [
   "gambling_prediction_promo",
   "wallet_action_urgency",
   "task_reward_engagement_bait",
+  "task_withdrawal_payment",
   "ton_referral_earning_scheme",
   "suspicious_invite_link",
   "impersonates_official",
@@ -542,7 +543,8 @@ function telegramScenarioBrief(
   const hasViolenceThreat = reasons.includes("threatens_physical_violence");
   const hasDangerousAuthorityTask = reasons.includes("authority_coerced_dangerous_act");
   const hasPenaltyPointsFee = reasons.includes("fake_penalty_points_erasure");
-  const hasMoneyRequest = reasons.includes("asks_for_money_transfer");
+  const hasMoneyRequest =
+    reasons.includes("asks_for_money_transfer") || reasons.includes("task_withdrawal_payment");
   const hasAccountTakeover = reasons.includes("telegram_account_takeover_phishing");
   const hasCasino = reasons.includes("crypto_casino_bonus_funnel");
   const hasBetting = reasons.includes("gambling_prediction_promo");
@@ -727,6 +729,11 @@ function compactTelegramReason(reason: ReasonCode, lang: Lang): string | null {
       uz: "oddiy harakat uchun mukofot",
       en: "reward for simple tasks",
     },
+    task_withdrawal_payment: {
+      ru: "доплата для вывода заработка",
+      uz: "ish haqini yechish uchun qo'shimcha to'lov",
+      en: "payment to withdraw earnings",
+    },
     wallet_action_urgency: {
       ru: "срочное действие с кошельком",
       uz: "hamyon bilan shoshilinch amal",
@@ -809,7 +816,8 @@ function telegramNextStep(
   const hasViolenceThreat = reasons.includes("threatens_physical_violence");
   const hasDangerousAuthorityTask = reasons.includes("authority_coerced_dangerous_act");
   const hasPenaltyPointsFee = reasons.includes("fake_penalty_points_erasure");
-  const hasMoneyRequest = reasons.includes("asks_for_money_transfer");
+  const hasMoneyRequest =
+    reasons.includes("asks_for_money_transfer") || reasons.includes("task_withdrawal_payment");
   const hasBetting =
     reasons.includes("gambling_prediction_promo") || reasons.includes("crypto_casino_bonus_funnel");
   const hasGiveaway =

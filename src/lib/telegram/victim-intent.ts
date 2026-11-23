@@ -8,10 +8,16 @@ import {
 import { CB } from "@/lib/telegram/format";
 import { bt } from "@/lib/telegram/bot-i18n";
 import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
+import { stripScenarioLeadIns } from "@/lib/telegram/conversation-wrapper";
 import { resolveTelegramTextLanguage } from "@/lib/telegram/inline-query-language";
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 import { isAccidentalOutgoingTransferIntent } from "@/lib/telegram/text-panic-intent";
 import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
+import {
+  INCIDENT_ACTION,
+  reportsCompletedCarrierDial,
+  uzRequestFromOtherSpeaker,
+} from "@/lib/risk/incident-first-action";
 
 export const ALL_VICTIM_INTENTS = [
   "emotional_help",
@@ -80,6 +86,7 @@ export const ALL_VICTIM_SCENARIOS = [
   "apk_already_installed",
   "authority_physical_coercion",
   "bank_contact_from_message",
+  "carrier_dial_request",
   "fake_boss_request",
   "charity_pressure",
   "fake_support",
@@ -126,6 +133,7 @@ export interface VictimFollowUpContext extends VictimIntentMatch {
 }
 
 export type VictimGuidanceFollowUpAction =
+  | "carrier_dialed"
   | "why"
   | "next_steps"
   | "trusted_person"
@@ -197,8 +205,144 @@ const FAMILY_REQUEST_VALUE_RE =
   /(?:деньг|денег|перевод|оплат|заплат|штраф|налич|курьер|доллар|рубл|бед|сбор|pul|qarz|o['’]?tkaz|to['’]?lov|to['’]?la|muammo|yig['’]?ish|money|transfer|pay|cash|fine|courier|trouble|collection)/iu;
 const FAMILY_IMPERSONATION_HELP_RE =
   /(?:голос|ovoz|voice).{0,60}(?:помощ|yordam|help)|(?:помощ|yordam|help).{0,60}(?:голос|ovoz|voice)/iu;
-const COMPLETED_PERSONAL_DATA_RE =
-  /(?:(?:я|i|men).{0,80}(?:отправил[аи]?|выслал[аи]?|послал[аи]?|передал[аи]?|загрузил[аи]?|sent|shared|submitted|uploaded|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim|yuborib\s+qo['’]?ydim).{0,120}(?:(?:фото|скан|копи[юя])\s+(?:своего\s+|моего\s+)?(?:паспорта|удостоверения|документа)|паспорт|удостоверен|документ\s+удостоверяющ|passport|passport\s+(?:photo|scan|copy)|identity\s+document|(?:photo|scan|copy)\s+of\s+(?:my\s+)?(?:passport|identity\s+document)|pasport|shaxsiy\s+hujjat|(?:pasport|hujjat)\s+(?:rasmi|nusxasi))|(?:я|i|men).{0,80}(?:(?:фото|скан|копи[юя])\s+(?:своего\s+|моего\s+)?(?:паспорта|удостоверения|документа)|паспорт|удостоверен|документ\s+удостоверяющ|passport|passport\s+(?:photo|scan|copy)|identity\s+document|(?:photo|scan|copy)\s+of\s+(?:my\s+)?(?:passport|identity\s+document)|pasport|shaxsiy\s+hujjat|(?:pasport|hujjat)\s+(?:rasmi|nusxasi)).{0,120}(?:отправил[аи]?|выслал[аи]?|послал[аи]?|передал[аи]?|загрузил[аи]?|sent|shared|submitted|uploaded|yubordim|jo['’]?natdim|yukladim|taqdim\s+etdim|yuborib\s+qo['’]?ydim))/iu;
+
+// Allow only affirmative timing/manner modifiers between the speaker and the
+// completed verb. A wildcard here would also admit negation or an aborted action.
+const DOCUMENT_EN_MODIFIERS = String.raw`(?:(?:already|alredy|aleady|just(?:\s+now)?|yesterday|today|earlier|recently|stupidly|foolishly|accidentally|mistakenly|last\s+night|this\s+morning)\s+){0,3}`;
+const DOCUMENT_RU_MODIFIERS = String.raw`(?:(?:уже|вчера|сегодня|вечером|утром|ночью|только\s+что|по\s+(?:глупости|ошибке)|случайно)\s+){0,3}`;
+const DOCUMENT_EN_ACTION = String.raw`(?:sent|shared|submitted|uploaded|gave)`;
+const DOCUMENT_RU_ACTION = String.raw`(?:от(?:п)?равил[аи]?|выслал[аи]?|послал[аи]?|передал[аи]?|загрузил[аи]?)`;
+// A work document, project file or transaction/order ID is not an identity
+// document. Keep explicit personal-document qualifiers local to the object,
+// so an unrelated ordinary document cannot suppress a real passport beside it.
+const DOCUMENT_RU_IDENTITY_OBJECT = String.raw`(?:паспорт\p{L}*|удостоверени\p{L}*|личн\p{L}*\s+документ\p{L}*|документ\p{L}*\s+(?:удостоверяющ\p{L}*|личност\p{L}*)|пинфл|инн)`;
+const DOCUMENT_IDENTITY_OBJECT_RE = new RegExp(
+  String.raw`(?<!\p{L})(?:${DOCUMENT_RU_IDENTITY_OBJECT}|passport\p{L}*|identity\s+(?:document|card)|pasport\p{L}*|(?:paport|paaport|pasort)\p{L}*|shaxsiy\s+hujjat\p{L}*|pinfl|stir|tax\s+id|(?:my|photo|national|personal)\s+id|id[\s-]+(?:card|document))(?!\p{L})`,
+  "iu",
+);
+const DOCUMENT_FRONTED_EN_ACTION_RE = new RegExp(
+  String.raw`^\s*my\s+(?:passport(?:\s+(?:photo|scan|copy))?|identity\s+document|tax\s+id)\s*,?\s*i\s+(?:have\s+)?${DOCUMENT_EN_MODIFIERS}${DOCUMENT_EN_ACTION}(?!\p{L})`,
+  "iu",
+);
+const DOCUMENT_FRONTED_RU_ACTION_RE = new RegExp(
+  String.raw`^\s*(?:я\s+)?(?:(?:свой|свою|своего|мой|мою|моего)\s+)?(?:(?:фото|скан|копию)\s+)?${DOCUMENT_RU_IDENTITY_OBJECT}\s+(?:(?:свой|свою|своего|мой|мою|моего)\s+)?(?:я\s+)?${DOCUMENT_RU_MODIFIERS}${DOCUMENT_RU_ACTION}(?!\p{L})`,
+  "iu",
+);
+const DOCUMENT_AFFIRMATIVE_ACTION_RE = new RegExp(
+  String.raw`(?<!\p{L})i\s+(?:have\s+)?${DOCUMENT_EN_MODIFIERS}${DOCUMENT_EN_ACTION}(?!\p{L})|(?<!\p{L})я\s+${DOCUMENT_RU_MODIFIERS}${DOCUMENT_RU_ACTION}(?!\p{L})|(?<!\p{L})(?:yubordim|jo['’]?natdim|yukladim|topshirdim|berdim|taqdim\s+etdim|yuborib\s+qo['’]?ydim)(?!\p{L})`,
+  "iu",
+);
+
+function documentStatements(text: string): string[] {
+  // Preserve grammatical commas until quoted-speech attribution is checked.
+  // A separate later assertion must not inherit the prior quote or refusal.
+  return text.split(/[.!?;\r\n]+|\s+(?:but|но|а|lekin)\s+/iu);
+}
+
+function hasCompletedDocumentAction(statement: string): boolean {
+  if (
+    /(?:(?:they|he|she|a\s+stranger)\s+(?:said|wrote|says|claims?|claimed)|(?:он|она|они|незнакомец|незнакомка)\s+(?:(?:мне|нам)\s+)?(?:написал[аи]?|пишет|пишут|сказал[аи]?|говорит|утвержда(?:ет|л[аи]?))|(?:u|ular)\s+(?:yozdi|aytdi))\s*[:«"“]/iu.test(
+      statement,
+    ) ||
+    /(?:they|he|she|a\s+stranger)\s+(?:said|says|wrote|claims?|claimed)\s+(?:that\s+)?i\s+/iu.test(
+      statement,
+    ) ||
+    /(?:он|она|они|незнакомец|незнакомка)\s+(?:(?:мне|нам)\s+)?(?:написал[аи]?|сказал[аи]?|говорит|утвержда(?:ет|л[аи]?))\s*,?\s*(?:что|будто)\s+я\s+/iu.test(
+      statement,
+    ) ||
+    /(?:^|\s)(?:u|ular|notanish\s+odam)\s+.{0,180}\bdeb\s+(?:ayt(?:di|yapti)|yoz(?:di|yapti))(?!\p{L})/iu.test(
+      statement,
+    ) ||
+    /(?<!\p{L})(?:если\s+я|if\s+i|agar\s+men)(?!\p{L})/iu.test(statement)
+  )
+    return false;
+
+  // Fronted English objects can contain one grammatical comma. Accept only
+  // an owned document followed immediately by an affirmative first-person
+  // action, before the general comma-separated clause walk below.
+  if (DOCUMENT_FRONTED_EN_ACTION_RE.test(statement)) {
+    return true;
+  }
+  return statement.split(/,+/u).some((clause) => {
+    // A standalone Russian self-report may omit "я" or put the document
+    // first. Keep that bounded word order without accepting another actor,
+    // a negation, a hypothetical action or an incoming quoted message.
+    if (DOCUMENT_FRONTED_RU_ACTION_RE.test(clause)) {
+      return true;
+    }
+    const affirmativeAction = DOCUMENT_AFFIRMATIVE_ACTION_RE.exec(clause);
+    if (!affirmativeAction || affirmativeAction.index === undefined) return false;
+    // RU/EN require the document as this verb's following object. Uzbek's
+    // normal object-before-verb order is handled separately, not by borrowing
+    // a passport mention from the other actor's preceding request.
+    const actionEnd = affirmativeAction.index + affirmativeAction[0].length;
+    const nearby = /^(?:i|я)(?!\p{L})/iu.test(affirmativeAction[0])
+      ? clause.slice(actionEnd, actionEnd + 120)
+      : clause.slice(Math.max(0, affirmativeAction.index - 120), affirmativeAction.index);
+    const document = Array.from(
+      nearby.matchAll(new RegExp(DOCUMENT_IDENTITY_OBJECT_RE.source, "giu")),
+    ).find((candidate) => {
+      const beforeObject = nearby.slice(0, candidate.index);
+      const afterObject = nearby.slice(candidate.index + candidate[0].length);
+      // "Sent not my passport" denies the object, not the completed verb.
+      // Check each object separately; a denied ID cannot hide a later passport.
+      return (
+        !/(?<!\p{L})(?:не\s+(?:(?:мой|моего|свой|своего|фото|скан|копию)\s+){0,2}|(?:not|no)\s+(?:(?:my|the|a|any|photo|scan|copy|of)\s+){0,3})$/iu.test(
+          beforeObject,
+        ) && !/^\s+emas(?!\p{L})/iu.test(afterObject)
+      );
+    });
+    if (!document) return false;
+    // "Sent a refusal to share a passport" transports the refusal. But
+    // "sent my passport despite a refusal" still transports the document.
+    const refusal = /(?:refusal|отказ|rad\s+(?:et(?:ish|gan)|javob))/iu.exec(nearby);
+    if (refusal) {
+      if (/^(?:i|я)(?!\p{L})/iu.test(affirmativeAction[0])) {
+        if (refusal.index < document.index) return false;
+      } else if (
+        !/\bva\b/iu.test(nearby.slice(document.index + document[0].length, refusal.index))
+      ) {
+        // Uzbek puts the transported object before the verb. A refusal about
+        // sending is not a disclosure; explicit "passport AND refusal" is.
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function isOfficialDocumentStatement(statement: string): boolean {
+  if (!hasCompletedDocumentAction(statement)) return false;
+  if (
+    /(?:незнаком|чуж|мошен|неофициальн|поддельн|stranger|unknown\s+(?:person|contact)|scammer|fake|not\s+(?:the\s+)?official|unofficial|notanish|begona|firibgar|norasmiy)/iu.test(
+      statement,
+    )
+  )
+    return false;
+  return (
+    SAFE_OFFICIAL_DOCUMENT_UPLOAD_RE.test(statement) ||
+    SAFE_OFFICIAL_DOCUMENT_HANDOFF_RE.test(statement) ||
+    /(?:my\s+bank|сво(?:ему|его)\s+банк|o['’]?z\s+bankim).{0,70}(?:official\s+app|официальн\p{L}*\s+приложен|rasmiy\s+ilova)|официальн\p{L}*\s+приложен\p{L}*\s+(?:моего|своего)\s+банка/iu.test(
+      statement,
+    )
+  );
+}
+
+/** Aftercare evidence only: real self-disclosure outside an explicit official handoff. */
+export function hasCompletedPersonalDataDisclosure(text: string): boolean {
+  return documentStatements(text).some(
+    (statement) => hasCompletedDocumentAction(statement) && !isOfficialDocumentStatement(statement),
+  );
+}
+
+/** Neutral routing exception; this does not verify the claimed bank/app or imply safety. */
+export function isExplicitOfficialDocumentHandoff(text: string): boolean {
+  return (
+    documentStatements(text).some(isOfficialDocumentStatement) &&
+    !hasCompletedPersonalDataDisclosure(text)
+  );
+}
+
 const COMPLETED_PASSWORD_ENTRY_RE =
   /(?:(?:я|i|men).{0,80}(?:вв[её]л|entered|kiritib\s+bo['’]?ldim).{0,80}(?:парол|password|parol).{0,80}(?:чуж|someone\s+else|begona).{0,30}(?:site|сайт|sayt)|(?:я|i|men).{0,80}(?:чуж|someone\s+else|begona).{0,30}(?:site|сайт|sayt).{0,80}(?:парол|password|parol).{0,80}(?:вв[её]л|entered|kiritib\s+bo['’]?ldim))/iu;
 const UNAUTHORIZED_CHARGE_RE =
@@ -610,7 +754,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:дмед|dmed|поликлиник|врач|медработ|медик|осмотр|грипп|shifokor).{0,180}(?:код|sms|смс|запис|вход|систем|просит|ayt|kod)/iu.test(
+    /(?<!\p{L})(?:дмед|dmed|поликлиник|врач|медработ|медик|осмотр|грипп|shifokor).{0,180}(?:код|sms|смс|запис|вход|систем|просит|ayt|kod)/iu.test(
       text,
     )
   ) {
@@ -618,7 +762,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:незнаком|посторон|человек|кто.?то).{0,120}(?:просит|попросил|хочет|дал).{0,90}(?:телефон|смартфон).{0,90}(?:позвон|минут|звонок)|(?:на\s+улиц[еуы]|улиц[аеуы]|посторон|незнаком).{0,100}(?:просят|просит|попросил|хочет).{0,90}(?:телефон|смартфон).{0,90}(?:позвон|минут|звонок)|(?:просят|просит|попросил|хочет).{0,60}(?:телефон|смартфон).{0,70}(?:на\s+минут|позвонить|позвон|звонок)|(?:телефон|смартфон).{0,100}(?:на\s+минут|позвонить).{0,100}(?:просит|просят|незнаком|посторон)/iu.test(
+    /(?:незнаком|посторон|человек|кто.?то).{0,120}(?:просит|попросил|хочет|дал).{0,90}(?:телефон|смартфон)(?!\p{L}).{0,90}(?:позвон|минут|звонок)|(?:на\s+улиц[еуы]|улиц[аеуы]|посторон|незнаком).{0,100}(?:просят|просит|попросил|хочет).{0,90}(?:телефон|смартфон)(?!\p{L}).{0,90}(?:позвон|минут|звонок)|(?:просят|просит|попросил|хочет).{0,60}(?:телефон|смартфон)(?!\p{L}).{0,70}(?:на\s+минут|позвонить|позвон|звонок)|(?:телефон|смартфон)(?!\p{L}).{0,100}(?:на\s+минут|позвонить).{0,100}(?:просит|просят|незнаком|посторон)/iu.test(
       text,
     )
   ) {
@@ -661,9 +805,13 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
 }
 
 export function classifyVictimIntent(text: string): VictimIntentMatch | null {
-  const normalized = normalizeVictimText(text);
+  const normalized = stripScenarioLeadIns(normalizeVictimText(text));
   if (!normalized) return null;
   const combined = classifyVictimIntentWithTranslit(normalized);
+  // A later, explicitly named speaker is not the relative who made the call.
+  if (combined?.kind === "friend_money" && uzRequestFromOtherSpeaker(text)) {
+    return { kind: "transfer_request", askedContext: "transfer" };
+  }
 
   // In a multiline request, Telegram users commonly put the actual scenario
   // on one line and add only a trust/next-step question, pressure detail, URL
@@ -1005,6 +1153,13 @@ export function classifyVictimGuidanceFollowUp(
               : SHORT_CONTEXT_PRESSURE_RE.test(normalized)
                 ? "pressure"
                 : null;
+  if (
+    !action &&
+    active.kind === "operator_call" &&
+    active.scenario === "carrier_dial_request" &&
+    reportsCompletedCarrierDial(text)
+  )
+    action = "carrier_dialed";
   if (!action && BOUNDED_RU_LATIN_CONTEXT_FOLLOW_UP_RE.test(normalized)) {
     action = /^p[oa]chemu/iu.test(normalized)
       ? "why"
@@ -1137,6 +1292,16 @@ function buildContextualWhyText(context: VictimIntentMatch, lang: Lang): string 
 }
 
 function buildContextualNextStepsText(context: VictimIntentMatch, lang: Lang): string {
+  if (
+    context.kind === "operator_call" &&
+    (!context.scenario || context.scenario === "carrier_dial_request")
+  ) {
+    return {
+      ru: "Откройте приложение своего оператора и напишите в поддержку. Если вы уже набирали команду, попросите проверить, изменились ли услуги или настройки номера.",
+      uz: "Operatoringiz ilovasini ochib, yordam xizmatiga yozing. Buyruqni tergan bo‘lsangiz, raqamingiz xizmatlari yoki sozlamalari o‘zgarganini tekshirtiring.",
+      en: "Open your carrier’s app and contact support. If you dialed a code, ask them to check whether any services or settings changed.",
+    }[lang];
+  }
   if (context.askedContext === "code") {
     return {
       ru: "Код не сообщайте и ничего им не подтверждайте. Завершите контакт, сами откройте официальное приложение или позвоните по официальному номеру. Если код уже передан, сразу завершите неизвестные сеансы или свяжитесь с банком — в зависимости от того, для чего пришёл код.",
@@ -1199,6 +1364,8 @@ export function buildVictimGuidanceFollowUpText(
   if (followUp.action === "reply_script") {
     return buildContextualReplyScript(followUp.context, lang);
   }
+  if (followUp.action === "carrier_dialed")
+    return INCIDENT_ACTION.carrier_command_already_dialed[lang];
 
   if (followUp.action === "verify_official") {
     return {
@@ -2012,11 +2179,8 @@ function classifyHighConfidenceEverydayScenario(normalized: string): VictimInten
   }
 
   if (
-    hasAllScenarioSignals(normalized, [
-      /(?:passport|pasport|paport|паспорт|документ|hujjat)/iu,
-      /(?:already|alredy|sent|shared|от(?:п)?равил|отправил|yubordim|jo['’]?natdim)/iu,
-      /(?:stranger|stanger|незнаком|notanish|noanish|begona)/iu,
-    ])
+    hasCompletedPersonalDataDisclosure(normalized) &&
+    /(?:stranger|stanger|незнаком|notanish|noanish|begona)/iu.test(normalized)
   ) {
     return { kind: "personal_data_already_shared", scenario: "passport_already_shared" };
   }
@@ -2126,7 +2290,7 @@ function classifyHighConfidenceEverydayScenario(normalized: string): VictimInten
   }
 
   if (
-    /(?:fake|soxta|ложн|лже).{0,60}(?:bank|банк).{0,100}(?:employee|emloyee|agent|xodim|сотрудник).{0,140}(?:urgent|zudlik|сроч|demand|talab|треб).{0,100}(?:transaction|operatsiya|операци)/iu.test(
+    /(?:(?:fake|soxta|ложн|лже).{0,60}(?:bank|банк).{0,100}(?:employee|emloyee|agent|xodim|сотрудник)|(?:лже|ложн).{0,40}сотрудник.{0,30}банк).{0,140}(?:urgent|zudlik|сроч|demand|talab|треб).{0,100}(?:transaction|operatsiya|операци)/iu.test(
       normalized,
     )
   ) {
@@ -2147,14 +2311,6 @@ function classifyHighConfidenceEverydayScenario(normalized: string): VictimInten
     )
   ) {
     return { kind: "romance_money", askedContext: "transfer", scenario: "romance_money" };
-  }
-
-  if (
-    /(?:men).{0,40}(?:paport|paaport|pasort|pasport|hujjat).{0,80}(?:rasm|nusxa).{0,100}(?:notanish|begona).{0,80}(?:yubordim|jo['’]?natdim)/iu.test(
-      normalized,
-    )
-  ) {
-    return { kind: "personal_data_already_shared", scenario: "passport_already_shared" };
   }
 
   if (
@@ -2301,8 +2457,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   // merely because it mentions a relative, payment, passport, or portal.
   if (
     SAFE_ROUTINE_PAYMENT_RE.test(normalized) ||
-    SAFE_OFFICIAL_DOCUMENT_UPLOAD_RE.test(normalized) ||
-    SAFE_OFFICIAL_DOCUMENT_HANDOFF_RE.test(normalized) ||
+    isExplicitOfficialDocumentHandoff(normalized) ||
     SAFE_OFFICIAL_SIM_SERVICE_RE.test(normalized) ||
     isExplicitNativeNeighborVideoSafe(normalized) ||
     isExplicitSafeOfficialFineAppPayment(normalized) ||
@@ -2437,7 +2592,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   // Completed incidents must be classified before generic code/file/data
   // request rules, otherwise the bot gives prevention advice after the harm
   // has already happened.
-  if (COMPLETED_PERSONAL_DATA_RE.test(normalized)) {
+  if (hasCompletedPersonalDataDisclosure(normalized)) {
     return { kind: "personal_data_already_shared" };
   }
 
@@ -3195,14 +3350,6 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
     )
   ) {
     return { kind: "account_hacked_other", askedContext: "code" };
-  }
-
-  if (
-    /(?:я\s+уже|i\s+(?:already\s+)?sent|men).{0,50}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim).{0,50}(?:паспорт|passport|pasport|удостоверени|identity\s+document|shaxsiy\s+hujjat).{0,60}(?:незнаком|stranger|notanish|begona)|(?:я|i|men).{0,30}(?:незнаком|notanish|begona|stranger).{0,40}(?:паспорт|passport|pasport|удостоверени|identity\s+document|shaxsiy\s+hujjat).{0,40}(?:отправил|sent|yubordim|yuborib\s+qo['’]?ydim)|(?:i\s+sent|я\s+уже\s+отправил).{0,40}(?:passport\s+photo|скан\s+удостоверени).{0,40}(?:stranger|незнаком)|я\s+уже\s+отправил.{0,30}незнаком.{0,30}скан\s+удостоверени/iu.test(
-      normalized,
-    )
-  ) {
-    return { kind: "personal_data_already_shared" };
   }
 
   if (

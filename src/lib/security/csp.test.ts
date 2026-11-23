@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,8 +6,6 @@ import {
   DEFAULT_CONTENT_SECURITY_POLICY,
   EMBED_CHECK_CONTENT_SECURITY_POLICY,
   parseEmbedFrameAncestorAllowlist,
-  UNICORN_STUDIO_SCRIPT_INTEGRITY,
-  UNICORN_STUDIO_SCRIPT_SRC,
 } from "./csp";
 
 function directive(policy: string, name: string): string {
@@ -22,15 +18,9 @@ function directive(policy: string, name: string): string {
 }
 
 describe("content security policy", () => {
-  it("binds the pinned Unicorn script to its verified SRI hash", () => {
-    const componentSource = readFileSync(
-      resolve(process.cwd(), "src/components/UnicornBackground.tsx"),
-      "utf8",
-    );
-
-    expect(componentSource).toContain("s.integrity = UNICORN_STUDIO_SCRIPT_INTEGRITY");
-    expect(componentSource).toContain('s.crossOrigin = "anonymous"');
-    expect(componentSource).toContain('s.referrerPolicy = "no-referrer"');
+  it("loads main-site scripts from self only, with no third-party host", () => {
+    expect(directive(DEFAULT_CONTENT_SECURITY_POLICY, "script-src")).toBe("script-src 'self'");
+    expect(DEFAULT_CONTENT_SECURITY_POLICY).not.toContain("cdn.jsdelivr.net");
   });
 
   it("does not allow inline scripts on the main site", () => {
@@ -40,7 +30,6 @@ describe("content security policy", () => {
     const styleSrcAttr = directive(DEFAULT_CONTENT_SECURITY_POLICY, "style-src-attr");
 
     expect(scriptSrc).toContain("'self'");
-    expect(scriptSrc).toContain(UNICORN_STUDIO_SCRIPT_SRC);
     expect(scriptSrc).not.toContain("'unsafe-inline'");
     expect(styleSrc).not.toContain("'unsafe-inline'");
     expect(styleSrcElem).not.toContain("'unsafe-inline'");
@@ -50,7 +39,6 @@ describe("content security policy", () => {
     expect(DEFAULT_CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'none'");
     expect(DEFAULT_CONTENT_SECURITY_POLICY).not.toContain("fonts.googleapis.com");
     expect(DEFAULT_CONTENT_SECURITY_POLICY).not.toContain("fonts.gstatic.com");
-    expect(UNICORN_STUDIO_SCRIPT_INTEGRITY).toMatch(/^sha384-[A-Za-z0-9+/]+=*$/);
   });
 
   it("keeps the embeddable widget frameable only for self/dev by default", () => {
@@ -98,9 +86,7 @@ describe("content security policy", () => {
     const policy = addScriptNonceToContentSecurityPolicy(DEFAULT_CONTENT_SECURITY_POLICY, "abc123");
     const scriptSrc = directive(policy, "script-src");
 
-    expect(scriptSrc).toContain("'nonce-abc123'");
-    expect(scriptSrc).toContain("'self'");
-    expect(scriptSrc).toContain(UNICORN_STUDIO_SCRIPT_SRC);
+    expect(scriptSrc).toBe("script-src 'nonce-abc123' 'self'");
     expect(scriptSrc).not.toContain("'unsafe-inline'");
   });
 

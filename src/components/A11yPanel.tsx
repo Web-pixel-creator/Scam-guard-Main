@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
-import { Type, Contrast, ChevronUp, ChevronDown, X, Accessibility } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { CaretDown, CaretUp, CircleHalf, PersonArmsSpread, TextAa, X } from "@phosphor-icons/react";
+import { OPEN_A11Y_PANEL_EVENT } from "@/lib/a11y-panel-bus";
 import { useLang } from "@/lib/lang-context";
 
 // Keep the in-app scale within the smallest supported mobile layout.
@@ -22,6 +23,50 @@ export function A11yPanel() {
   const [open, setOpen] = useState(false);
   const [scale, setScale] = useState<Scale>(1);
   const [contrast, setContrast] = useState(false);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  // Focus follows the panel: into it on open, back to whatever opened it on close.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const restoreFocusRef = useRef(true);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const wasOpenRef = useRef(false);
+
+  // Esc closes the panel wherever focus is. Focus goes back to the opener only
+  // if it was still inside the panel; otherwise the visitor stays where they are.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const active = document.activeElement;
+      restoreFocusRef.current =
+        active === document.body || !!(active && panelRef.current?.contains(active));
+      setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
+    const openFromMenu = () => {
+      returnFocusRef.current = document.querySelector<HTMLElement>(".vp-menu-button");
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_A11Y_PANEL_EVENT, openFromMenu);
+    return () => window.removeEventListener(OPEN_A11Y_PANEL_EVENT, openFromMenu);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      restoreFocusRef.current = true;
+      closeRef.current?.focus();
+    } else if (wasOpenRef.current && restoreFocusRef.current) {
+      const target = returnFocusRef.current;
+      // The floating launcher is hidden where the mobile menu replaces it.
+      if (target && target.offsetParent !== null) target.focus();
+      else launcherRef.current?.focus();
+    }
+    wasOpenRef.current = open;
+  }, [open]);
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -79,14 +124,14 @@ export function A11yPanel() {
   }, []);
 
   const L = {
-    title: { ru: "Доступность", uz: "Imkoniyatlar", en: "Accessibility" }[lang],
+    title: { ru: "Доступность", uz: "Maxsus imkoniyatlar", en: "Accessibility" }[lang],
     open: {
       ru: "Открыть панель доступности",
-      uz: "Imkoniyatlar panelini ochish",
+      uz: "Maxsus imkoniyatlar panelini ochish",
       en: "Open accessibility panel",
     }[lang],
     close: { ru: "Закрыть", uz: "Yopish", en: "Close" }[lang],
-    fontSize: { ru: "Размер шрифта", uz: "Shrift o'lchami", en: "Text size" }[lang],
+    fontSize: { ru: "Размер шрифта", uz: "Shrift o‘lchami", en: "Text size" }[lang],
     inc: { ru: "Увеличить шрифт", uz: "Shriftni kattalashtirish", en: "Increase text size" }[lang],
     dec: { ru: "Уменьшить шрифт", uz: "Shriftni kichraytirish", en: "Decrease text size" }[lang],
     contrast: { ru: "Высокий контраст", uz: "Yuqori kontrast", en: "High contrast" }[lang],
@@ -97,91 +142,79 @@ export function A11yPanel() {
   const pct = Math.round(scale * 100);
 
   return (
-    <div
-      className="a11y-panel-root fixed z-50 left-3 bottom-3 sm:left-4 sm:bottom-4 print:hidden"
-      style={{ zoom: 1 / scale }}
-    >
+    <div className="a11y-panel-root vp-a11y" style={{ zoom: 1 / scale }}>
       {!open && (
         <button
+          ref={launcherRef}
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            returnFocusRef.current = launcherRef.current;
+            setOpen(true);
+          }}
           aria-label={L.open}
           aria-expanded={false}
-          className="a11y-launcher grid place-items-center h-12 w-12 rounded-full bg-[#0B0B0F] text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)] hover:bg-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-colors"
+          className="a11y-launcher vp-a11y-launcher"
         >
-          <Accessibility className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />
+          <PersonArmsSpread weight="bold" aria-hidden="true" />
         </button>
       )}
       {open && (
         <div
+          ref={panelRef}
           role="region"
           aria-label={L.title}
-          className="a11y-panel-card w-[280px] rounded-[10px] border border-[#E2E0D8] bg-white shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)] p-4"
+          className="a11y-panel-card vp-a11y-card"
         >
-          <div className="flex items-center justify-between mb-3">
-            <p className="apex-mono text-[#18181B]">{L.title}</p>
+          <div className="vp-a11y-head">
+            <span className="vp-checker-label">{L.title}</span>
             <button
+              ref={closeRef}
               type="button"
               onClick={() => setOpen(false)}
               aria-label={L.close}
-              className="grid place-items-center h-8 w-8 rounded-[4px] border border-transparent hover:border-[#E2E0D8] text-[#52525B] hover:text-[#18181B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316]"
+              className="vp-a11y-close"
             >
-              <X className="h-4 w-4" strokeWidth={2} />
+              <X weight="bold" aria-hidden="true" />
             </button>
           </div>
 
-          {/* Font size */}
-          <div className="mb-4">
-            <label className="flex items-center gap-2 text-[13px] font-semibold text-[#18181B] mb-2">
-              <Type className="h-4 w-4 text-[#C2410C]" strokeWidth={2} aria-hidden="true" />
+          <div className="vp-a11y-row" role="group" aria-labelledby="a11y-font-size">
+            <p className="vp-a11y-label" id="a11y-font-size">
+              <TextAa weight="bold" aria-hidden="true" />
               {L.fontSize}
-              <span className="ml-auto apex-mono tabular-nums">{pct}%</span>
-            </label>
-            <div className="flex items-stretch gap-2">
-              <button
-                type="button"
-                onClick={() => changeScale(-1)}
-                disabled={idx <= 0}
-                aria-label={L.dec}
-                className="flex-1 inline-flex items-center justify-center gap-1 h-11 rounded-[6px] border border-[#E2E0D8] bg-white text-[#18181B] font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#F97316] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316]"
-              >
-                <ChevronDown className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-                <span className="text-[15px]">A−</span>
+              <b>{pct}%</b>
+            </p>
+            <div className="vp-a11y-steps">
+              {/* The name starts with the visible "A−"/"A+" (WCAG 2.5.3, voice control). */}
+              <button type="button" onClick={() => changeScale(-1)} disabled={idx <= 0}>
+                <CaretDown weight="bold" aria-hidden="true" />
+                <span>A−</span>
+                <span className="sr-only"> {L.dec}</span>
               </button>
               <button
                 type="button"
                 onClick={() => changeScale(1)}
                 disabled={idx >= SCALES.length - 1}
-                aria-label={L.inc}
-                className="flex-1 inline-flex items-center justify-center gap-1 h-11 rounded-[6px] border border-[#E2E0D8] bg-white text-[#18181B] font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#F97316] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316]"
               >
-                <ChevronUp className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-                <span className="text-[19px]">A+</span>
+                <CaretUp weight="bold" aria-hidden="true" />
+                <span className="vp-a11y-big">A+</span>
+                <span className="sr-only"> {L.inc}</span>
               </button>
             </div>
           </div>
 
-          {/* High contrast */}
           <button
             type="button"
             onClick={toggleContrast}
             aria-pressed={contrast}
-            className={`w-full flex items-center gap-2 h-11 px-3 rounded-[6px] border text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97316] transition-colors ${
-              contrast
-                ? "bg-[#0B0B0F] text-white border-[#0B0B0F]"
-                : "bg-white text-[#18181B] border-[#E2E0D8] hover:border-[#F97316]"
-            }`}
+            className="vp-a11y-toggle"
           >
-            <Contrast className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+            <CircleHalf weight="fill" aria-hidden="true" />
             {L.contrast}
-            <span className="ml-auto apex-mono">{contrast ? "ON" : "OFF"}</span>
+            <b>{contrast ? "ON" : "OFF"}</b>
           </button>
 
-          <button
-            type="button"
-            onClick={reset}
-            className="mt-3 w-full text-[12px] text-[#52525B] hover:text-[#C2410C] underline underline-offset-4 decoration-[#E2E0D8] hover:decoration-[#F97316]"
-          >
+          <button type="button" onClick={reset} className="vp-a11y-reset">
             {L.reset}
           </button>
         </div>

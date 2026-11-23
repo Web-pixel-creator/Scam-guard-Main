@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { LANG_COOKIE, langCookie } from "./lang-preference";
 
 const privacyRoute = readFileSync(resolve(process.cwd(), "src/routes/privacy.tsx"), "utf8");
 const retentionMigration = readFileSync(
@@ -24,13 +25,24 @@ describe("public privacy and retention contract", () => {
 
   it("states raw screenshot disposal and the still-open appeal-retention decision", () => {
     expect(privacyRoute).toContain("Скриншоты обрабатываются в памяти и удаляются");
-    expect(privacyRoute).toContain("Skrinshotlar xotirada qayta ishlanib o'chiriladi");
+    expect(privacyRoute).toContain("Skrinshotlar xotirada qayta ishlanib o‘chiriladi");
     expect(privacyRoute).toContain("Screenshots are processed in memory and discarded");
     expect(privacyRoute).toContain(
       "окончательный срок для них требует отдельного юридического решения",
     );
     expect(privacyRoute).toContain("yakuniy muddat alohida yuridik qarorni talab qiladi");
     expect(privacyRoute).toContain("final period still requires a separate legal decision");
+  });
+
+  it("discloses the language cookie as the code sets it, in all three languages", () => {
+    expect(langCookie("ru", false)).toContain("Max-Age=31536000");
+    expect(privacyRoute.match(new RegExp(`\\b${LANG_COOKIE}\\b`, "gu"))?.length).toBe(3);
+    for (const text of ["на 1 год", "1 yil saqlanadi", "for 1 year"]) {
+      expect(privacyRoute).toContain(text);
+    }
+    expect(privacyRoute).toContain("сторонних счётчиков на сайте нет");
+    expect(privacyRoute).toContain("saytda begona hisoblagichlar yo‘q");
+    expect(privacyRoute).toContain("the site has no third-party trackers");
   });
 
   it("keeps appeals moderated and forbids secret/document proof", () => {

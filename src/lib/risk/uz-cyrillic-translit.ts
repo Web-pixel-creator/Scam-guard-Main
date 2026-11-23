@@ -27,7 +27,12 @@ const CYRILLIC_RE = /[Ѐ-ӿ]/u;
 /** True when Cyrillic text carries an Uzbek-language signal worth a variant pass. */
 export function looksLikeUzbekCyrillic(text: string): boolean {
   if (!CYRILLIC_RE.test(text)) return false;
-  return UZ_SPECIFIC_LETTER_RE.test(text) || UZ_CYRILLIC_MORPHOLOGY_RE.test(text);
+  return (
+    UZ_SPECIFIC_LETTER_RE.test(text) ||
+    UZ_CYRILLIC_MORPHOLOGY_RE.test(text) ||
+    /(?<!\p{L})(?:картамдан|рухсатсиз)(?!\p{L})/iu.test(text) ||
+    /(?<!\p{L})кодини\s+айтинг(?!\p{L})/iu.test(text)
+  );
 }
 
 // 1995 Uzbek Latin orthography, ASCII apostrophe variant (o', g') — the same

@@ -2,6 +2,16 @@
 
 Newest first. This tracks documentation/memory files, not every code commit.
 
+## 2026-11-23 — unified local release candidate (C0–C4)
+
+- Assembled local branch `release/unified-viper-p2-20261123` on top of `origin/main` (`b9c2f40`) in five scoped commits:
+  - `C0`: patched audited runtime/toolchain dependencies (`@tanstack/react-start`, `@tanstack/react-router`, `vite`, `vitest`, `seroval` and lockfile overrides).
+  - `C1`: unified P1 (`PR #149`) and P2 privacy, media-consent ordering, retention concurrency, atomic appeal idempotency, Web OCR ticket replay guard, IPv6 canonicalization, voice secret-class preservation, task-withdrawal/document-aftercare rules, 5 migrations (33 → 38), and CI concurrency proofs (keeping backup R1 strictly isolated in `PR #150`).
+  - `C2`: applied owner-approved Viper redesign across public pages (`D-109..D-121`), self-hosted Inter/Inter Display fonts, WCAG AA contrast, SSR language negotiation (`ig_lang` cookie + `Accept-Language`), centralized SEO metadata + `/robots.txt` + `/sitemap.xml`, lazy Supabase admin auth middleware, and `'self'`-only script CSP.
+  - `C3`: ported Patch v4 first-action advice (bank SMS code/callback handoff, carrier dial-command vs post-dial advice, unauthorized debit aftercare, speaker separation across line breaks) and stale-result edit guards for both `CheckInput` and `EmbedCheckWidget`.
+  - `C4`: reconciled `CURRENT_STATE.md`, `OPEN_TASKS.md`, `API.md`, `DATABASE.md`, `DECISIONS.md` (`D-096..D-123`, excluding backup-R1-only `D-115..D-117`/`D-122`), `FILE_MAP.md`, and `FUNCTIONS_MAP.md` while preserving `PR #151`'s streamlined `README.md` and `AI_INDEX.md`.
+- Local candidate only — not pushed, merged, deployed, or applied to hosted Supabase.
+
 ## 2026-11-20 — repository navigation
 
 Consolidated the release snapshot in [current state](CURRENT_STATE.md).

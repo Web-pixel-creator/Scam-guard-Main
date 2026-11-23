@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Lang } from "@/lib/i18n";
+import { firstAdvice } from "@/lib/telegram/first-advice";
 import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
 import { maskForDisplay, redactText } from "@/lib/risk/detect";
 import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/risk-passport";
@@ -37,6 +38,8 @@ import {
 } from "@/lib/telegram/inline-reason-presentation";
 import {
   classifyVictimIntent,
+  hasCompletedPersonalDataDisclosure,
+  isExplicitOfficialDocumentHandoff,
   isExplicitAuthoritySafetyNotice,
   isExplicitCompletedPersonalGift,
   isExplicitNativeNeighborVideoSafe,
@@ -45,6 +48,7 @@ import {
   type VictimIntentKind,
   type VictimIntentMatch,
 } from "@/lib/telegram/victim-intent";
+import { stripScenarioLeadIns } from "@/lib/telegram/conversation-wrapper";
 
 const MAX_INLINE_QUERY_LENGTH = 256;
 const MAX_INLINE_DESCRIPTION_LENGTH = 120;
@@ -484,7 +488,7 @@ const PREVIEW_COPY: Record<
       code_request: {
         title: "Код: никому не называйте",
         description:
-          "Не сообщайте SMS-код или PIN. Push-коды, OTP и пароли тоже не диктуйте; добавьте только текст просьбы или скрин.",
+          "Не сообщайте SMS-код или PIN. Для проверки опишите просьбу своими словами, без кодов и паролей.",
       },
       recovery_phrase_request: {
         title: "Сид-фраза: никому не отправляйте",
@@ -859,7 +863,7 @@ const PREVIEW_COPY: Record<
       code_request: {
         title: "Kod: hech kimga aytmang",
         description:
-          "SMS-kod yoki PIN-ni aytmang. Push-kod, OTP va parolni ham aytmang; faqat so'rov matni yoki skrinni qo'shing.",
+          "SMS-kod yoki PIN-ni aytmang. Nima so‘rashganini yozing, kod yoki parolni yubormang.",
       },
       recovery_phrase_request: {
         title: "Tiklash iborasi: hech kimga yubormang",
@@ -1232,7 +1236,7 @@ const PREVIEW_COPY: Record<
       code_request: {
         title: "Code: do not share it with anyone",
         description:
-          "Do not share your SMS code or PIN. Do not read out push codes, OTPs or passwords; add only the request text or screenshot.",
+          "Do not share your SMS code or PIN. Describe what they asked for without including codes or passwords.",
       },
       recovery_phrase_request: {
         title: "Recovery phrase: never share it",
@@ -2083,9 +2087,15 @@ function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
   const copy = COPY[lang];
   const level = copy.levels[result.level];
   if (result.level === "high_risk" || result.level === "suspicious") {
+    const advice = inlineSafeAction(result, lang, copy);
+    // Put one complete instruction above the fold and retain any aftercare
+    // in the shared message. Do not cut a multi-sentence action mid-word.
+    const lead = advice.length > MAX_INLINE_DESCRIPTION_LENGTH ? firstSentence(advice) : advice;
+    const aftercare = advice.slice(lead.length).trim();
     return [
       level.title,
-      `${copy.stepLabel}: ${inlineSafeAction(result, lang, copy)}`,
+      `${copy.stepLabel}: ${lead}`,
+      ...(aftercare ? [aftercare] : []),
       "",
       copy.checkedBy,
       "",
@@ -2219,19 +2229,19 @@ function hasSentCodeIntent(normalized: string): boolean {
     return false;
   }
   return (
-    /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|сказал|сказала|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L})).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+    /(?:я|уже|только что|сейчас)?.{0,40}(?:передал|передала|отправил|отправила|сообщил|сообщила|сказал|сказала|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L})).{0,80}(?:код|sms|смс|otp|push|пуш|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол)/iu.test(
       normalized,
     ) ||
-    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|сказал|сказала|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L}))/iu.test(
+    /(?:код|sms|смс|otp|push|пуш|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол).{0,80}(?:передал|передала|отправил|отправила|сообщил|сообщила|сказал|сказала|назвал|назвала|продиктовал|продиктовала|ввел|ввёл|ввела|скинул|скинула|дал(?!\p{L})|дала(?!\p{L}))/iu.test(
       normalized,
     ) ||
-    /(?:men|allaqachon|hozirgina).{0,60}(?:kod|sms|otp|push|pin|parol).{0,60}(?:yubordim|aytdim|aytib\s+bo['’]?ldim|berdim|kiritdim|jo['’]?natdim)/iu.test(
+    /(?:men|allaqachon|hozirgina).{0,60}(?:kod|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|parol).{0,60}(?:yubordim|aytdim|aytib\s+bo['’]?ldim|berdim|kiritdim|jo['’]?natdim)/iu.test(
       normalized,
     ) ||
-    /(?:kod|sms|otp|push|pin|parol).{0,80}(?:yubordim|aytdim|aytib\s+bo['’]?ldim|berdim|kiritdim|jo['’]?natdim)/iu.test(
+    /(?:kod|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|parol).{0,80}(?:yubordim|aytdim|aytib\s+bo['’]?ldim|berdim|kiritdim|jo['’]?natdim)/iu.test(
       normalized,
     ) ||
-    /(?:i|already|just).{0,60}(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+    /(?:i|already|just).{0,60}(?:sent|shared|gave|told|read out|entered).{0,80}(?:code|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|password)/iu.test(
       normalized,
     )
   );
@@ -2248,37 +2258,37 @@ function hasRecoveryPhraseRequestIntent(normalized: string): boolean {
 
 function hasCodeRequestIntent(normalized: string): boolean {
   return (
-    /(?:просят|просит|просил|попросил|попросили|хочет|хотят|требует|требуют|сказали|говорят|нужно|надо|пришел|пришёл|прислали|дали).{0,80}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+    /(?:просят|просит|просил|попросил|попросили|хочет|хотят|требует|требуют|сказали|говорят|нужно|надо|пришел|пришёл|прислали|дали).{0,80}(?:код|sms|смс|otp|push|пуш|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол)/iu.test(
       normalized,
     ) ||
-    /(?:спрашива|спросил|спросили|просит|просят|попросил|попросили).{0,80}(?:одноразов|код подтверждения|код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+    /(?:спрашива|спросил|спросили|просит|просят|попросил|попросили).{0,80}(?:одноразов|код подтверждения|код|sms|смс|otp|push|пуш|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол)/iu.test(
       normalized,
     ) ||
-    /(?:код|sms|смс|otp|push|пуш|pin|пин|парол).{0,80}(?:назвать|сказать|продиктовать|отправить|ввести|переслать|скинуть|пришел|пришёл|пришл|хочет|хотят|просит|просят|попросил|попросили|спросил|спросили)/iu.test(
+    /(?:код|sms|смс|otp|push|пуш|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол).{0,80}(?:назвать|сказать|продиктовать|отправить|ввести|переслать|скинуть|пришел|пришёл|пришл|хочет|хотят|просит|просят|попросил|попросили|спросил|спросили)/iu.test(
       normalized,
     ) ||
-    /(?:можно|стоит|надо|нужно).{0,60}(?:отправить|переслать|скинуть|ввести|сказать|назвать).{0,60}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+    /(?:можно|стоит|надо|нужно).{0,60}(?:отправить|переслать|скинуть|ввести|сказать|назвать).{0,60}(?:код|sms|смс|otp|push|пуш|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол)/iu.test(
       normalized,
     ) ||
-    /(?:kod|sms|otp|push|pin|parol|es\s*em\s*es|esemes).{0,80}(?:ayt|ber|yubor|kirit|kel|so['’]?ra|xohla|deyapti|dedi|kerakmi)/iu.test(
+    /(?:kod|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|parol|es\s*em\s*es|esemes).{0,80}(?:ayt|ber|yubor|kirit|kel|so['’]?ra|xohla|deyapti|dedi|kerakmi)/iu.test(
       normalized,
     ) ||
-    /(?:ayt|ber|yubor|kirit|so['’]?ra|xohla|deyapti|dedi|kerakmi).{0,80}(?:kod|sms|otp|push|pin|parol|es\s*em\s*es|esemes)/iu.test(
+    /(?:ayt|ber|yubor|kirit|so['’]?ra|xohla|deyapti|dedi|kerakmi).{0,80}(?:kod|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|parol|es\s*em\s*es|esemes)/iu.test(
       normalized,
     ) ||
-    /(?:ask|asked|asks|need|needs|want|wants|sent).{0,80}(?:code|sms|otp|push|pin|password)/iu.test(
+    /(?:ask|asked|asks|need|needs|want|wants|sent).{0,80}(?:code|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|password)/iu.test(
       normalized,
     ) ||
-    /(?:code|sms|otp|push|pin|password).{0,80}(?:tell|say|share|send|read out|enter|should i|can i)/iu.test(
+    /(?:code|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|password).{0,80}(?:tell|say|share|send|read out|enter|should i|can i)/iu.test(
       normalized,
     ) ||
-    /(?:назовите|скажите|сообщите|продиктуйте|отправьте|перешлите|скиньте|введите).{0,60}(?:код|sms|смс|otp|push|пуш|pin|пин|парол)/iu.test(
+    /(?:назовите|скажите|сообщите|продиктуйте|отправьте|перешлите|скиньте|введите).{0,60}(?:код|sms|смс|otp|push|пуш|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол)/iu.test(
       normalized,
     ) ||
-    /(?:ayting|bering|yuboring|jo['’]?nating|kiriting).{0,60}(?:kod|sms|otp|push|pin|parol|es\s*em\s*es|esemes)/iu.test(
+    /(?:ayting|bering|yuboring|jo['’]?nating|kiriting).{0,60}(?:kod|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|parol|es\s*em\s*es|esemes)/iu.test(
       normalized,
     ) ||
-    /(?:tell|say|share|send|enter|provide|read\s+(?:out|(?:to\s+)?me)).{0,60}(?:code|sms|otp|push|pin|password)/iu.test(
+    /(?:tell|say|share|send|enter|provide|read\s+(?:out|(?:to\s+)?me)).{0,60}(?:code|sms|otp|push|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|password)/iu.test(
       normalized,
     )
   );
@@ -2309,17 +2319,21 @@ function hasCardRequestIntent(normalized: string): boolean {
       /(?:карт|cvv|cvc|срок|оборот|номер карты|реквизит).{0,80}(?:отправ|назв|ввест|фото|сфот|спрашива|спросил|спросили|просят|просит|требует|требуют)/iu.test(
         normalized,
       ) ||
-      /(?:введите|пришлите|отправьте|назовите|сообщите|покажите).{0,60}(?:данн.{0,20})?(?:карт|cvv|cvc|срок|реквизит|пин|pin)/iu.test(
+      /(?:введите|пришлите|отправьте|назовите|сообщите|покажите).{0,60}(?:данн.{0,20})?(?:карт|cvv|cvc|срок|реквизит|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё]))/iu.test(
         normalized,
       ) ||
-      /(?:karta|cvv|cvc|pin).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit|so['’]?ra)/iu.test(
+      /(?:karta|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])).{0,80}(?:ma['’]?lumot|raqam|ayt|ber|yubor|kirit|so['’]?ra)/iu.test(
         normalized,
       ) ||
-      /(?:ayt|ber|yubor|kirit|so['’]?ra).{0,60}(?:karta|cvv|cvc|pin)/iu.test(normalized) ||
-      /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|pin)/iu.test(
+      /(?:ayt|ber|yubor|kirit|so['’]?ra).{0,60}(?:karta|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё]))/iu.test(
         normalized,
       ) ||
-      /(?:send|share|enter|provide|give).{0,60}(?:card|cvv|cvc|expiry|pin)/iu.test(normalized))
+      /(?:ask|asked|asks|need|needs|want|wants).{0,80}(?:card|cvv|cvc|expiry|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё]))/iu.test(
+        normalized,
+      ) ||
+      /(?:send|share|enter|provide|give).{0,60}(?:card|cvv|cvc|expiry|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё]))/iu.test(
+        normalized,
+      ))
   );
 }
 
@@ -2380,7 +2394,9 @@ function hasPriorityInlineDangerIntent(normalized: string): boolean {
 function hasExplicitCredentialRequestIntent(normalized: string): boolean {
   if (!hasCodeRequestIntent(normalized)) return false;
   return (
-    /(?:код|kod|code|otp|pin|пин|парол|password|push|пуш|cvv|cvc)/iu.test(normalized) ||
+    /(?:код|kod|code|otp|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|парол|password|push|пуш|cvv|cvc)/iu.test(
+      normalized,
+    ) ||
     /(?:sms|смс)[^\r\n]{0,40}(?:share|tell|send|forward|назв|сказ|сообщ|отправ|пересл|ayt|yubor|jo['’]?nat)/iu.test(
       normalized,
     )
@@ -2599,7 +2615,7 @@ function classifyNewsHumanInlineIntent(normalized: string): HumanInlineIntent | 
   }
 
   if (
-    /(?:дмед|dmed|поликлиник|врач|медработ|медик|осмотр|грипп|shifokor).{0,180}(?:код|sms|смс|запис|вход|систем|просит|ayt|kod)/iu.test(
+    /(?<!\p{L})(?:дмед|dmed|поликлиник|врач|медработ|медик|осмотр|грипп|shifokor).{0,180}(?:код|sms|смс|запис|вход|систем|просит|ayt|kod)/iu.test(
       normalized,
     )
   ) {
@@ -3090,7 +3106,7 @@ function classifySpecificHumanInlineIntent(normalized: string): HumanInlineInten
 }
 
 function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
-  const normalizedBase = normalizeIntentTextForMatching(text);
+  const normalizedBase = stripScenarioLeadIns(normalizeIntentTextForMatching(text));
   const normalized = uzbekLatinMatchingVariant(normalizedBase) ?? normalizedBase;
   // Negative mentions such as “APK was not involved” describe a completed
   // official payment. Stop before the broad APK/file preflight can reinterpret
@@ -3236,7 +3252,7 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
   }
 
   if (
-    /(?:я|мы|уже|только\s+что).{0,70}(?:дал(?!\p{L})|дала(?!\p{L})|отправил|отправила|назвал|назвала|вв[её]л|ввела|скинул|скинула).{0,90}(?:номер\s+карты|карт[уы]|cvv|cvc|пин|pin|реквизит)|(?:i|we)\s+(?:already\s+)?(?:gave|sent|entered).{0,80}(?:card|cvv|cvc|pin)/iu.test(
+    /(?:я|мы|уже|только\s+что).{0,70}(?:дал(?!\p{L})|дала(?!\p{L})|отправил|отправила|назвал|назвала|вв[её]л|ввела|скинул|скинула).{0,90}(?:номер\s+карты|карт[уы]|cvv|cvc|(?<![a-zа-яё])пин(?:код)?(?![a-zа-яё])|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё])|реквизит)|(?:i|we)\s+(?:already\s+)?(?:gave|sent|entered).{0,80}(?:card|cvv|cvc|(?<![a-zа-яё])pin(?:code|(?:im)?ni)?(?![a-zа-яё]))/iu.test(
       normalized,
     )
   ) {
@@ -3251,27 +3267,14 @@ function classifyHumanInlineIntent(text: string): HumanInlineIntent | null {
     return "link_request";
   }
 
-  const safeOfficialDocumentHandoff =
-    /(?:официальн\p{L}*|official|rasmiy).{0,100}(?:государственн\p{L}*\s+портал|визов\p{L}*\s+центр|приложен\p{L}*\s+банк\p{L}*|government\s+portal|visa\s+application\s+cent(?:er|re)|bank(?:ing)?\s+app|davlat\s+portali|viza\s+markazi|bank\s+ilovasi)/iu.test(
-      normalized,
-    ) &&
-    /(?:я|i|men).{0,90}(?:отправил[аи]?|передал[аи]?|загрузил[аи]?|sent|submitted|uploaded|yubordim|yukladim|topshirdim).{0,120}(?:паспорт|passport|pasport)|(?:я|i|men).{0,90}(?:паспорт|passport|pasport).{0,120}(?:отправил[аи]?|передал[аи]?|загрузил[аи]?|sent|submitted|uploaded|yubordim|yukladim|topshirdim)/iu.test(
-      normalized,
-    ) &&
-    !/(?:незнаком|чуж|мошен|stranger|unknown\s+(?:person|contact)|scammer|notanish|begona|firibgar)/iu.test(
-      normalized,
-    );
+  const safeOfficialDocumentHandoff = isExplicitOfficialDocumentHandoff(normalized);
+  if (safeOfficialDocumentHandoff) return null;
 
   if (sharedVictimIntent === "personal_data_aftercare" && !safeOfficialDocumentHandoff) {
     return sharedVictimIntent;
   }
 
-  if (
-    !safeOfficialDocumentHandoff &&
-    /(?:паспорт|пинфл|инн).{0,120}(?:уже|от.?рав|послал|передал)|(?:уже|от.?рав|послал|передал).{0,120}(?:паспорт|пинфл|инн)|(?:pasport|pinfl|stir).{0,120}(?:yubord|berdim)|(?:yubord|berdim).{0,120}(?:pasport|pinfl|stir)|(?:passport|tax\s+id).{0,120}(?:already|sent|shared|gave)|(?:already|sent|shared|gave).{0,120}(?:passport|tax\s+id)/iu.test(
-      normalized,
-    )
-  ) {
+  if (!safeOfficialDocumentHandoff && hasCompletedPersonalDataDisclosure(normalized)) {
     return "personal_data_aftercare";
   }
 
@@ -4313,6 +4316,25 @@ export async function handleInlineQuery(
 
   if (isAmbiguousShortNumericQuery(trimmed)) {
     await answer(ambiguousNumericArticle(lang));
+    return;
+  }
+
+  const advice =
+    completedPanicId === null || completedPanicId === 6
+      ? firstAdvice(trimmed, lang, completedPanicId === 6)
+      : null;
+  if (advice?.kind === "physical") {
+    await answer(
+      humanIntentArticle(
+        trimmed,
+        lang,
+        advice.topic === "violence_threat" ? "violence_threat" : "dangerous_task",
+      ),
+    );
+    return;
+  }
+  if (advice?.kind === "short") {
+    await answer(buildArticle(advice.id, advice.title, advice.text, advice.text, lang));
     return;
   }
 

@@ -11,6 +11,8 @@ package-lock.json
 ai_docs
 **/*.test.ts
 coverage
+output
+.playwright-cli
 .vscode
 .idea
 *.md

@@ -78,7 +78,12 @@ vi.mock("@/lib/telegram/session.server", () => ({
   ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
 }));
 
-import { runCheck, type RunCheckResult } from "@/lib/risk/check-core";
+import {
+  __resetAiCircuitBreakerForTests,
+  analyzeImageCore,
+  runCheck,
+  type RunCheckResult,
+} from "@/lib/risk/check-core";
 import { formatCheckResult } from "@/lib/telegram/format";
 import { handleCheck } from "@/lib/telegram/handlers/check";
 import { escapeMarkdownV2 } from "@/lib/telegram/api.server";
@@ -139,6 +144,7 @@ const ORIGINAL_AI_ENV = {
 };
 
 beforeEach(() => {
+  __resetAiCircuitBreakerForTests();
   hoisted.insertCalls.length = 0;
   hoisted.sendCalls.length = 0;
   // Default: any network call fails. This guarantees nothing real is hit and
@@ -521,6 +527,34 @@ describe("AI provider resilience v1 — transient retry policy", () => {
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain("fallback.example");
     expect(result.explanation).toBe("Fallback explanation from backup model.");
     expect(result.level).toBe("high_risk");
+  });
+
+  it("sends consented raw image media at most once when fallback is disabled", async () => {
+    process.env.OPENAI_API_KEY = "primary-test-key";
+    process.env.OPENAI_BASE_URL = "https://primary.example/v1";
+    process.env.OPENAI_MODEL = "primary-model";
+    process.env.OPENAI_FALLBACK_BASE_URL = "https://fallback.example/v1";
+    process.env.OPENAI_FALLBACK_API_KEY = "fallback-test-key";
+    process.env.OPENAI_FALLBACK_MODEL = "fallback-model";
+
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => ({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+      text: async () => "temporary unavailable",
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      analyzeImageCore("data:image/jpeg;base64,AAAA", "ru", nextKey(), {
+        maxAttempts: 1,
+        allowFallback: false,
+      }),
+    ).resolves.toBeNull();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("primary.example");
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ redirect: "error" }));
   });
 
   it.each([500, 502, 503])(

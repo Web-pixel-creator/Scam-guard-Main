@@ -27,6 +27,9 @@ const hoisted = vi.hoisted(() => ({
   runCheckKeys: [] as string[],
   ocrKeys: [] as string[],
   voiceKeys: [] as string[],
+  getFileCalls: [] as string[],
+  downloadCalls: [] as string[],
+  transferLeaseCurrent: { current: true },
 }));
 
 // A valid RunCheckResult shape returned by the mocked core. `level` must be a
@@ -49,20 +52,32 @@ vi.mock("@/lib/risk/check-core", () => ({
     hoisted.runCheckKeys.push(params.rateLimitKey);
     return Promise.resolve(FAKE_RESULT);
   },
-  analyzeImageCore: (_dataUrl: string, _lang: string, rateLimitKey: string) => {
+  analyzeImageCore: async (
+    _dataUrl: string,
+    _lang: string,
+    rateLimitKey: string,
+    options?: { beforeProviderTransfer?: () => Promise<void> },
+  ) => {
+    await options?.beforeProviderTransfer?.();
     hoisted.ocrKeys.push(rateLimitKey);
-    return Promise.resolve({
+    return {
       text: "extracted suspicious text",
       visualCategory: "chat_screenshot",
       confidence: "medium",
       qr: { present: false, visibleUrl: null, purpose: "unknown" },
       riskHints: [],
       summary: null,
-    });
+    };
   },
-  transcribeVoiceCore: (_dataUrl: string, _lang: string, rateLimitKey: string) => {
+  transcribeVoiceCore: async (
+    _dataUrl: string,
+    _lang: string,
+    rateLimitKey: string,
+    options?: { beforeProviderTransfer?: () => Promise<void> },
+  ) => {
+    await options?.beforeProviderTransfer?.();
     hoisted.voiceKeys.push(rateLimitKey);
-    return Promise.resolve({ text: "caller asks for SMS code" });
+    return { text: "caller asks for SMS code" };
   },
 }));
 
@@ -75,8 +90,14 @@ vi.mock("@/lib/risk/shared-rate-limit.server", () => ({
 vi.mock("@/lib/telegram/api.server", () => ({
   sendMessage: () => Promise.resolve({ ok: true }),
   sendChatAction: () => Promise.resolve(),
-  getFile: () => Promise.resolve({ filePath: "photos/file_0.jpg", fileSize: 12_345 }),
-  downloadFileAsDataUrl: () => Promise.resolve("data:image/jpeg;base64,AAAA"),
+  getFile: (fileId: string) => {
+    hoisted.getFileCalls.push(fileId);
+    return Promise.resolve({ filePath: "photos/file_0.jpg", fileSize: 12_345 });
+  },
+  downloadFileAsDataUrl: (filePath: string) => {
+    hoisted.downloadCalls.push(filePath);
+    return Promise.resolve("data:image/jpeg;base64,AAAA");
+  },
   getChatInfo: () => Promise.resolve({ ok: false, errorCode: 400, description: "chat not found" }),
   escapeMarkdownV2: (s: string) => s,
 }));
@@ -90,6 +111,19 @@ vi.mock("@/lib/telegram/session.server", () => ({
     chatId: number,
     chatType = "private",
   ) => ({ ...(data ?? {}), chatScope: { chatId, chatType } }),
+}));
+
+vi.mock("@/lib/telegram/media-provider-consent.server", () => ({
+  consumeMediaProviderConsent: () => Promise.resolve("consumed"),
+  isMediaProviderConsentStorageError: (error: unknown) =>
+    error instanceof Error && error.message === "media_provider_consent_storage",
+  requestMediaProviderConsent: () => Promise.resolve(true),
+  assertMediaProviderTransferAllowed: async () => {
+    if (!hoisted.transferLeaseCurrent.current) {
+      throw new Error("media_provider_consent_storage");
+    }
+  },
+  sendMediaProviderConsentFailure: () => Promise.resolve(),
 }));
 
 import { handleCheck, handleImage, handlePhoneFromContact, handleVoice } from "./check";
@@ -176,6 +210,9 @@ beforeEach(() => {
   hoisted.runCheckKeys.length = 0;
   hoisted.ocrKeys.length = 0;
   hoisted.voiceKeys.length = 0;
+  hoisted.getFileCalls.length = 0;
+  hoisted.downloadCalls.length = 0;
+  hoisted.transferLeaseCurrent.current = true;
 });
 
 afterEach(() => {
@@ -244,5 +281,19 @@ describe("check handlers — Property 4: rate-limit key is always tg:<telegram_u
       ),
       { numRuns: 100 },
     );
+  });
+});
+
+describe("check handlers — provider transfer lease fence", () => {
+  it("does not invoke image analysis when the lease is lost after download", async () => {
+    hoisted.transferLeaseCurrent.current = false;
+
+    await expect(handleImage("stale-image", makeCtx(42, 100, "ru"))).rejects.toThrow(
+      "media_provider_consent_storage",
+    );
+
+    expect(hoisted.getFileCalls).toEqual(["stale-image"]);
+    expect(hoisted.downloadCalls).toEqual(["photos/file_0.jpg"]);
+    expect(hoisted.ocrKeys).toHaveLength(0);
   });
 });

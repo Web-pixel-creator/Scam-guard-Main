@@ -6,7 +6,8 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { compressHttpResponse } from "./lib/http-compression.server";
 import { logServerError } from "./lib/safe-server-log.server";
-import { getEmbedAllowedFrameAncestors } from "./lib/config.server";
+import { getEmbedAllowedFrameAncestors, getPublicAppUrl } from "./lib/config.server";
+import { SITEMAP_PATHS } from "./lib/page-meta";
 import { getTelegramUpdateDeliveryMode, getTelegramWebhookSecret } from "./lib/config.server";
 import {
   addScriptNonceToContentSecurityPolicy,
@@ -37,6 +38,22 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
   "Content-Security-Policy": DEFAULT_CONTENT_SECURITY_POLICY,
 };
+
+// Pages render in the visitor's language (ig_lang cookie, else the browser's
+// language list), so a shared cache must not hand one language to everyone.
+function varyHtmlByLanguage(response: Response): Response {
+  if (!(response.headers.get("content-type") ?? "").includes("text/html")) return response;
+  const current = response.headers.get("Vary") ?? "";
+  const present = current.split(",").map((v) => v.trim().toLowerCase());
+  const missing = ["Cookie", "Accept-Language"].filter((v) => !present.includes(v.toLowerCase()));
+  if (missing.length > 0) {
+    response.headers.set(
+      "Vary",
+      current ? `${current}, ${missing.join(", ")}` : missing.join(", "),
+    );
+  }
+  return response;
+}
 
 function createCspNonce(): string {
   return randomBytes(16).toString("base64url");
@@ -83,6 +100,35 @@ const TELEGRAM_POLLING_HEALTH_PATH = "/api/telegram/polling-health";
 // Answers 200 without touching the SSR renderer, so probes stay cheap and do
 // not depend on React rendering or any downstream service.
 const HEALTHZ_PATH = "/healthz";
+
+// Crawlers: absolute sitemap URLs from PUBLIC_APP_URL. noindex pages (appeal,
+// login, widget) stay crawlable so their meta robots tag is seen; only the
+// authenticated admin area and the API are disallowed.
+const ROBOTS_PATH = "/robots.txt";
+const SITEMAP_PATH = "/sitemap.xml";
+
+export function renderRobotsTxt(origin: string): string {
+  return [
+    "User-agent: *",
+    "Disallow: /admin",
+    "Disallow: /admin-mfa",
+    "Disallow: /api/",
+    "",
+    `Sitemap: ${origin}${SITEMAP_PATH}`,
+    "",
+  ].join("\n");
+}
+
+export function renderSitemapXml(origin: string): string {
+  const urls = SITEMAP_PATHS.map((path) => `  <url><loc>${origin}${path}</loc></url>`);
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls,
+    "</urlset>",
+    "",
+  ].join("\n");
+}
 const EMBED_CHECK_PATH = "/embed/check";
 
 type ServerEntry = {
@@ -145,6 +191,23 @@ export default {
         );
       }
 
+      if (request.method === "GET" && (pathname === ROBOTS_PATH || pathname === SITEMAP_PATH)) {
+        const robots = pathname === ROBOTS_PATH;
+        const origin = getPublicAppUrl();
+        return withSecurityHeaders(
+          new Response(robots ? renderRobotsTxt(origin) : renderSitemapXml(origin), {
+            status: 200,
+            headers: {
+              "content-type": robots
+                ? "text/plain; charset=utf-8"
+                : "application/xml; charset=utf-8",
+              "cache-control": "public, max-age=3600",
+            },
+          }),
+          pathname,
+        );
+      }
+
       // Telegram webhook: handle POST /api/telegram/webhook.
       if (request.method === "POST" && pathname === TELEGRAM_WEBHOOK_PATH) {
         return withSecurityHeaders(await handleTelegramWebhook(request), pathname);
@@ -180,7 +243,7 @@ export default {
     }
     return compressHttpResponse(
       request,
-      withSecurityHeaders(response, new URL(request.url).pathname, cspNonce),
+      withSecurityHeaders(varyHtmlByLanguage(response), new URL(request.url).pathname, cspNonce),
     );
   },
 };

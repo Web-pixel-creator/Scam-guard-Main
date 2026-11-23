@@ -22,7 +22,7 @@ const LEVEL_COLORS: Record<RiskLevel, string> = {
 
 const LEVEL_LABELS: Record<RiskLevel, Record<string, string>> = {
   safe: { ru: "Безопасно", uz: "Xavfsiz", en: "Safe" },
-  unknown: { ru: "Неизвестно", uz: "Noma'lum", en: "Unknown" },
+  unknown: { ru: "Неизвестно", uz: "Noma’lum", en: "Unknown" },
   suspicious: { ru: "Подозрительно", uz: "Shubhali", en: "Suspicious" },
   high_risk: { ru: "Высокий риск", uz: "Yuqori xavf", en: "High risk" },
 };
@@ -69,7 +69,7 @@ export function ReasonTimeline({
       {matchingPatterns.length > 0 && (
         <div>
           <p className="text-[#71717A] mb-1">
-            {{ ru: "Похожие схемы:", uz: "O'xshash sxemalar:", en: "Matching patterns:" }[lang]}
+            {{ ru: "Похожие схемы:", uz: "O‘xshash sxemalar:", en: "Matching patterns:" }[lang]}
           </p>
           <ul className="space-y-0.5 pl-3">
             {matchingPatterns.slice(0, 3).map((p) => (
@@ -99,7 +99,7 @@ export function ReasonTimeline({
             }[lang]
           : {
               ru: "Вывод: только по правилам (без AI)",
-              uz: "Xulosa: faqat qoidalar (AI'siz)",
+              uz: "Xulosa: faqat qoidalar (AI’siz)",
               en: "Verdict: rules only (no AI)",
             }[lang]}
       </p>

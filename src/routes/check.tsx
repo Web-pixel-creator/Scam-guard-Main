@@ -1,94 +1,61 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckInput } from "@/components/CheckInput";
+import { MagnifyingGlass } from "@phosphor-icons/react";
+import { HeroChecker, HeroChips, KindsBand, UrgentPlaque } from "@/components/home/blocks";
+import { Rich } from "@/components/viper/kit";
 import { useLang } from "@/lib/lang-context";
-import { t } from "@/lib/i18n";
-import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/check")({
-  head: () => ({
-    meta: [
-      { title: "Проверка — Ishonch Guard" },
-      {
-        name: "description",
-        content:
-          "Вставьте номер, Telegram, ссылку или текст и получите risk score и понятные шаги.",
-      },
-      { property: "og:title", content: "Проверка подозрительного — Ishonch Guard" },
-    ],
-  }),
   component: CheckPage,
 });
 
+const COPY = {
+  ru: {
+    eyebrow: "Проверка",
+    title: ["Сомневаетесь?", "Проверьте до ответа."],
+    lead: "Вставьте **номер, ссылку, @username или текст**. Через несколько секунд — **уровень риска**, причины простыми словами и **один безопасный шаг**.",
+  },
+  uz: {
+    eyebrow: "Tekshirish",
+    title: ["Shubhalanyapsizmi?", "Javobdan oldin tekshiring."],
+    lead: "**Raqam, havola, @username yoki matnni** joylashtiring. Bir necha soniyada — **xavf darajasi**, oddiy so‘zlar bilan sabablar va **bitta xavfsiz qadam**.",
+  },
+  en: {
+    eyebrow: "Check",
+    title: ["In doubt?", "Check before you reply."],
+    lead: "Paste **a number, link, @username or text**. In seconds you get **the risk level**, the reasons in plain words and **one safe step**.",
+  },
+} as const;
+
 function CheckPage() {
   const { lang } = useLang();
+  const copy = COPY[lang];
+
   return (
-    <div className="apex-page" style={{ maxWidth: 1080 }}>
-      <div className="apex-card apex-frame apex-stripes">
-        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">
-            {{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}
-          </span>
-          <span className="apex-mono text-right inline-flex items-center gap-1.5">
-            <ShieldCheck
-              className="h-3 w-3 text-[#F97316]"
-              strokeWidth={2}
-              aria-hidden="true"
-              focusable="false"
-            />
-            <span className="hidden xs:inline">
-              {{ ru: "Конфиденциально", uz: "Maxfiy", en: "Private" }[lang]}
-            </span>
-            <span className="xs:hidden">{{ ru: "Тайно", uz: "Maxfiy", en: "Private" }[lang]}</span>
-          </span>
-        </div>
-
-        <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
-          <span className="pain-pill">
-            <span className="pain-pill-dot" />
-            {
-              {
-                ru: "Сомневаетесь — не переводите, проверьте",
-                uz: "Shubha bo'lsa — o'tkazmang, tekshiring",
-                en: "In doubt? Don't pay — check first",
-              }[lang]
-            }
-          </span>
-          <p className="label-md mb-3 sm:mb-4">
-            01 — {{ ru: "Проверка", uz: "Tekshirish", en: "Check" }[lang]}
-          </p>
-          <h1 className="apex-h1">
-            {
-              {
-                ru: (
-                  <>
-                    Проверка{" "}
-                    <span className="font-serif-italic text-[#8B8B92]">подозрительного</span>
-                  </>
-                ),
-                uz: (
-                  <>
-                    Shubhalini <span className="font-serif-italic text-[#8B8B92]">tekshirish</span>
-                  </>
-                ),
-                en: (
-                  <>
-                    Check a <span className="font-serif-italic text-[#8B8B92]">suspicious</span>{" "}
-                    thing
-                  </>
-                ),
-              }[lang]
-            }
-          </h1>
-          <p className="apex-lead mt-5 sm:mt-6">{t("input_placeholder", lang)}</p>
-        </div>
-
-        <div className="mx-auto max-w-3xl">
-          <div className="cta-glow rounded-[10px]">
-            <CheckInput />
+    <div className="vp-home vp-page vp-page--check">
+      <section className="vp-hero">
+        <span className="vp-shape vp-shape--hero-right" aria-hidden="true" />
+        <div className="vp-shell vp-hero-grid">
+          <div className="vp-hero-copy">
+            <div className="vp-eyebrow">
+              <span aria-hidden="true">
+                <MagnifyingGlass weight="bold" />
+              </span>
+              {copy.eyebrow}
+            </div>
+            <h1 className="vp-hero-title">
+              <span>{copy.title[0]}</span>
+              <span>{copy.title[1]}</span>
+            </h1>
+            <p className="vp-hero-lead">
+              <Rich text={copy.lead} />
+            </p>
+            <HeroChips />
+            <UrgentPlaque target="/emergency" />
           </div>
-          <p className="mt-5 sm:mt-6 apex-mono text-[#71717A]">{t("privacy_promise", lang)}</p>
+          <HeroChecker />
         </div>
-      </div>
+        <KindsBand />
+      </section>
     </div>
   );
 }

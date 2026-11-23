@@ -12,6 +12,13 @@ export interface SensitiveTextSanitization {
 }
 
 const HIDDEN_VALUE = "••••";
+// Detection-only allow-list of invisible format controls. Do not normalize
+// visible letters, whitespace, names or prose for a persistence/display sink.
+// Keep this aligned with the invisible-only allow-list in intent normalization:
+// a label recognized there must not keep its secret at a shared sink here.
+const INVISIBLE_SECRET_FORMAT_RE =
+  // eslint-disable-next-line no-misleading-character-class -- combining marks and variation selectors are removed only in the detection copy, never normalized into sink output.
+  /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0\u{E0100}-\u{E01EF}]/gu;
 const WORD_START = String.raw`(?<![\p{L}\p{N}_])`;
 const WORD_END = String.raw`(?![\p{L}\p{N}_])`;
 // People often paste a credential after one visual delimiter instead of a
@@ -462,7 +469,7 @@ function redactMultilineRecoveryPhrases(input: string, classes: Set<SensitiveSec
   return cursor === 0 ? input : output + input.slice(cursor);
 }
 
-export function sanitizeSensitiveTextForSink(input: string): SensitiveTextSanitization {
+function sanitizeVisibleSensitiveTextForSink(input: string): SensitiveTextSanitization {
   const classes = new Set<SensitiveSecretClass>();
 
   let value = redactStandaloneHighConfidenceSecret(input, classes).replace(
@@ -629,6 +636,25 @@ export function sanitizeSensitiveTextForSink(input: string): SensitiveTextSaniti
   );
 
   return { value, redacted: classes.size > 0, classes: [...classes] };
+}
+
+export function sanitizeSensitiveTextForSink(input: string): SensitiveTextSanitization {
+  const direct = sanitizeVisibleSensitiveTextForSink(input);
+  const detectionOnly = input.replace(INVISIBLE_SECRET_FORMAT_RE, "");
+  if (detectionOnly === input) return direct;
+
+  const detected = sanitizeVisibleSensitiveTextForSink(detectionOnly);
+  if (!detected.redacted) return direct;
+
+  // Mapping redacted spans back through invisible controls can leave a second
+  // same-class value exposed. Prefer data minimization for proven secrets in
+  // this ambiguous case: hide the whole input, including surrounding prose.
+  // The detection copy never crosses a sink; value-free input stays byte-exact.
+  return {
+    value: HIDDEN_VALUE,
+    redacted: true,
+    classes: [...new Set([...direct.classes, ...detected.classes])],
+  };
 }
 
 export function redactSensitiveSecrets(input: string): string {

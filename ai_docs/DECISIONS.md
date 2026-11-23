@@ -3,6 +3,200 @@
 Architecture and product decisions. Prepend newest entries; keep them short and
 use a new unique id.
 
+## D-123 - Unified application release candidate with Patch v4 and stale-result guards
+
+**Status: local candidate assembled on 2026-11-23; not pushed, merged or deployed.**
+Consolidates the pending application work onto `main` (`b9c2f40`) in five
+reviewable commits (`C0` dependency security patches, `C1` P1/P2 security + 5
+migrations 33 → 38, `C2` Viper redesign + SSR language + SEO + CSP `'self'`,
+`C3` Patch v4 first-action advice + stale-result edit guards, `C4` reconciled
+documentation) while keeping backup R1 strictly separate in `PR #150`.
+
+- Patch v4 (`reportedBankSms`, `detectFirstAction`, `firstAdvice`) unifies bank
+  SMS code/callback handoffs, carrier dial-command vs post-dial advice,
+  unauthorized-debit aftercare (`reported_unauthorized_debit`), and speaker
+  separation across line breaks on web, Telegram Direct and Inline.
+- `CheckInput` (revision counter) and `EmbedCheckWidget` (`embedCheckReducer` +
+  route `key` reset on `lang`/`partner`) guarantee that an outdated in-flight
+  response can never overwrite an edited draft (including A→B→A edits) without
+  disturbing Web OCR selection/ticket consent guards.
+
+## D-121 - Page metadata from one module; Supabase client only for admin sessions
+
+**Status: local candidate (2026-10-16); unified in C2, not deployed.** Follow-up
+of the D-119 audit (SEO and JavaScript).
+
+- Titles, descriptions, social tags, canonical and robots of every public page
+  live in `src/lib/page-meta.ts` (RU/UZ/EN) with absolute URLs from
+  `PUBLIC_APP_URL`; `noindex` pages get no canonical. Homepage JSON-LD uses
+  absolute URLs and localized FAQ entries.
+- The server serves `/robots.txt` (disallowing `/admin` and `/api/`) and
+  `/sitemap.xml` (indexable public pages only).
+- `src/start.ts` registers `attachSupabaseAuthWhenSignedIn`
+  (`src/lib/server-fn-auth.ts`) so public visitors never load the Supabase JS
+  client.
+
+## D-120 - The server renders the visitor's language
+
+**Status: local candidate (2026-10-16); unified in C2, not deployed.**
+
+- Header language picks are stored in the first-party `ig_lang` cookie
+  (`ru`/`uz`/`en`, one year, `SameSite=Lax`, `Secure` on HTTPS). The root
+  loader reads it on the server (`Accept-Language` fallback, `Vary: Cookie, Accept-Language`)
+  so SSR HTML, `<html lang>` and hydration agree.
+- `/embed/check` without `?lang=` follows the visitor language. `/privacy`
+  discloses `ig_lang` and its one-year lifetime.
+
+## D-119 - AA contrast everywhere; metric-matched font fallbacks
+
+**Status: local candidate (2026-10-16); unified in C2, not deployed.**
+
+- Muted public text uses `--vp-muted-2` meeting WCAG AA across public pages.
+- Metric-matched Arial/Roboto fallback faces mirror Inter/Inter Display subsets
+  with `font-display: swap`; only the homepage preloads first-screen faces.
+
+## D-118 - Main-site scripts from self only; public check total stays at 1,000+
+
+**Status: local candidate (2026-10-15); unified in C2, not deployed.**
+
+- Removed unused `UnicornBackground` and jsDelivr CSP allowance: main-site
+  `script-src` is `'self'` plus per-request nonce only.
+- Public homepage check total displays only from 1,000+ checks upward.
+
+## D-114 - Sealed report-image replay after definitive Telegram 429 only
+
+**Status: local candidate (2026-10-11); unified in C1, not deployed.** A sealed
+marker in existing session JSON allows exact-update replay only after a
+definitive retryable 429 (max 3 attempts in 10 minutes, respecting
+`retry_after`, without copying OCR/media bytes or re-calling providers).
+
+## D-113 - One report-image handoff, unchanged consent and retry policy
+
+**Status: local candidate (2026-10-11); unified in C1, not deployed.** Report
+screenshot summary, next question and Skip keyboard share one logical Telegram
+message bound to the confirmed message id.
+
+## D-112 - Telegram and mobile web before another client
+
+**Status: owner-approved product direction (2026-10-11).** Focus on Telegram
+Direct/Inline and mobile web; defer separate native Android/iOS apps until real
+device acceptance and pilot evidence justify them.
+
+## D-111 - Every public page and form uses the homepage system
+
+**Status: local candidate (2026-10-09); unified in C2, not deployed.** Applies
+`src/components/viper/kit.tsx` and `src/components/home/blocks.tsx` across all
+public routes and forms while keeping `/admin` and `/admin-mfa` on their own
+striped moderation surface.
+
+## D-110 - Readable Viper/Nubo blocks: solid actions, titled cards, Viper red
+
+**Status: local candidate (2026-10-09); unified in C2, not deployed.** Uses
+Viper red (`#FF462E` / AA text `#C2321F`), solid dark primary pills, Nubo spec
+and urgent-help cards, and bounded 0–100 `displayRiskScore`.
+
+## D-109 - Owner-approved Viper public surface supersedes parts of D-084
+
+**Status: local candidate (2026-10-09); unified in C2, not deployed.** Self-hosted
+Inter Display + Inter fonts with full Cyrillic/Uzbek coverage, single unified
+`ViperHome` for RU/UZ/EN, empty initial checker with example chips, preserved
+`/admin` stripe, and unchanged data/security/auth boundaries.
+
+## D-108 - Bounded Web OCR ticket replay admission
+
+**Status: local candidate (2026-10-09); unified in C1, not deployed.** Adds
+migration `20261009073348_web_ocr_ticket_replay_guard.sql`, signed 10-minute
+single-use `issueOcrTicket` capability bound to `imageDigest`, atomic DB claim
+in `private.web_ocr_ticket_claims` before any external OCR provider call, and
+scheduled expiry pruning (UUID + timestamps only; fail-closed on replay/error).
+
+## D-107 - Selection-owned OCR callbacks and truthful consent recovery
+
+**Status: local candidate (2026-10-09); unified in C1, not deployed.** Uses a
+per-component `createWebOcrLifecycle()` controller so stale FileReader/OCR/check
+completions are ignored and consumed consent is never rearmed; Telegram recovery
+wording distinguishes a rejected click from revoked consent.
+
+## D-106 - Bundle review: secret sinks, bounded semantics and local proof transport
+
+**Status: local candidate (2026-10-09); unified in C1, not deployed.** Detects
+invisible-format obfuscation on a detection-only copy without persisting
+normalized prose, aligns document-aftercare and task-withdrawal clauses, and
+hardens local DB proof runners against libpq/env/argv leaks.
+
+## D-105 - Atomic appeal evidence and bounded notification eligibility
+
+**Status: local candidate (2026-10-09); unified in C1, not deployed.** Adds
+migration `20261009041643_reputation_appeal_atomic_submission.sql` and
+service-only `submit_reputation_appeal` RPC with globally ordered target-alias
+advisory locks for atomic duplicate detection, non-enumerating `{ ok: true }`
+responses, and single-alert eligibility per open-target episode.
+
+## D-104 - Canonical public IP identities before rate limit hashing
+
+**Status: local candidate (2026-10-09); unified in C1, not deployed.** Applies
+strict Node IP validation and WHATWG IPv6 canonicalization (aliasing only exact
+`::ffff:0:0/96` IPv4-mapped addresses) before HMAC hashing across all public
+check/OCR/report/appeal rate-limit consumers.
+
+## D-103 - Preserve secret categories before voice redaction
+
+**Status: local candidate (2026-10-09); unified in C1, not deployed.**
+`transcribeVoiceCore` detects secret classes locally before redaction/truncation
+and replaces secret-bearing transcripts entirely with `••••` while propagating
+enum-only `secretClasses` for downstream panic/warning routing.
+
+## D-102 - Separate fresh withdrawal payments from ordinary task rewards
+
+**Status: local candidate (2026-10-08); unified in C1, not deployed.** Adds
+composed `task_withdrawal_payment` signal (weight 50) for demands to deposit
+fresh money to unlock task earnings, distinct from withheld commissions or
+negated/educational clauses, and requires affirmative actor/action evidence for
+completed document-disclosure aftercare.
+
+## D-101 - Repair semantic routes without weakening the acceptance oracle
+
+**Status: local candidate (2026-10-08); unified in C1, not deployed.** Strips
+known conversational lead-ins only from a classifier view (never evidence/redaction
+input) and keeps document-disclosure and task-scam clauses strictly scoped.
+
+## D-100 - Retention fails explicitly on overlap and bounds each runtime lock wait
+
+**Status: local candidate (2026-10-08); unified in C1, not deployed.** Migration
+`20261007192049_retention_runtime_concurrency.sql` adds a transaction-scoped
+try-advisory lock (`55P03` / `retention_prune_busy`) and `lock_timeout = '5s'`
+to `private.prune_app_retention`.
+
+## D-099 - Expiry does not reset an existing consent row's ordering watermark
+
+**Status: local candidate (2026-10-07); unified in C1, not deployed.** Migration
+`20261007182550_telegram_media_consent_monotonic_order.sql` removes the TTL
+expiry bypass so an older update can never overwrite a newer media-consent row.
+
+## D-098 - Web OCR consent is explicit and ticket-bound
+
+**Status: local candidate (2026-09-04, strengthened by D-108); unified in C1.**
+Web screenshot OCR stages images locally, requires explicit consent
+(`externalProviderConsent=true`) plus a single-use server ticket (`D-108`), and
+disables retries, fallback and redirects.
+
+## D-097 - Public security boundaries are non-enumerating and environment-specific
+
+**Status: local candidate (2026-09-04); unified in C1, not deployed.** Public
+reputation appeals return non-enumerating `{ ok: true }`, webhook secrets are
+compared via SHA-256 + `timingSafeEqual`, proxy IP headers require explicit
+`TRUST_PROXY_IP_HEADERS_EDGE_VERIFIED=true`, and production admin AAL2 fails
+closed unless `REQUIRE_ADMIN_MFA_AAL2=true`.
+
+## D-096 - External Telegram media requires one-item informed consent
+
+**Status: local candidate (2026-09-04); unified in C1, not deployed.** Migration
+`20260904120000_telegram_media_provider_consent_claim.sql` adds
+`private.telegram_media_provider_consents` and fenced register/grant/revoke/claim
+RPCs requiring one-item localized disclosure and explicit user approval before
+any Telegram photo, voice message or `/report` screenshot reaches an external AI
+provider; local QR decoding stays local and never authorizes external transfer.
+
 ## D-095 - Backup workflow code is not operating recovery evidence
 
 **Status: active, reconciled 2026-08-28.** PR #133 merged an initial candidate,

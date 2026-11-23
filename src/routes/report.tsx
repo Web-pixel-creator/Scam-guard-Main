@@ -1,61 +1,45 @@
-import { createFileRoute, useSearch, useRouter, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, CheckCircle2, Send, ArrowLeft, ChevronRight, Home } from "lucide-react";
+import {
+  CheckCircle,
+  CircleNotch,
+  Lock,
+  Megaphone,
+  PaperPlaneRight,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import { PageHero, Pill, PillButton } from "@/components/viper/kit";
 import { useLang } from "@/lib/lang-context";
 import { t } from "@/lib/i18n";
-import { safeClientErrorReason } from "@/lib/client-error";
+import { isOffline, offlineMessage, safeClientErrorReason } from "@/lib/client-error";
 import { submitReport } from "@/lib/report.functions";
 
 const reportSearchSchema = z.object({ v: z.string().optional() });
 
+const SUBMIT_ERRORS = {
+  rateLimited: {
+    ru: "Слишком много жалоб подряд. Попробуйте снова через {min} мин. — введённый текст сохранён.",
+    uz: "Juda ko‘p shikoyat ketma-ket yuborildi. {min} daqiqadan keyin qayta urinib ko‘ring — matningiz saqlangan.",
+    en: "Too many reports in a row. Try again in {min} min — what you typed is still here.",
+  },
+  failed: {
+    ru: "Не удалось отправить. Попробуйте ещё раз чуть позже — введённый текст сохранён.",
+    uz: "Yuborib bo‘lmadi. Birozdan keyin qayta urinib ko‘ring — matningiz saqlangan.",
+    en: "Could not send. Try again a little later — what you typed is still here.",
+  },
+} as const;
+
 export const Route = createFileRoute("/report")({
   validateSearch: reportSearchSchema,
-  head: () => ({
-    meta: [
-      { title: "Сообщить о случае — Ishonch Guard" },
-      {
-        name: "description",
-        content:
-          "Отправьте подозрительный номер, Telegram, ссылку или сообщение — мы добавим в антискам-базу после модерации.",
-      },
-      { property: "og:title", content: "Сообщить о случае — Ishonch Guard" },
-    ],
-  }),
+
   component: ReportPage,
 });
 
 function ReportPage() {
   const { lang } = useLang();
-  const router = useRouter();
   const { v } = useSearch({ from: "/report" });
-
-  // Capture once at first render: did the user arrive from somewhere inside
-  // our app? If yes, history.back() is safe. Otherwise (deep link, new tab,
-  // refresh, opened from an email) we route to "/" to keep the result predictable.
-  const canGoBackRef = useRef<boolean>(
-    typeof window !== "undefined" &&
-      typeof document !== "undefined" &&
-      window.history.length > 1 &&
-      !!document.referrer &&
-      (() => {
-        try {
-          return new URL(document.referrer).origin === window.location.origin;
-        } catch {
-          return false;
-        }
-      })(),
-  );
-
-  const goBack = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (canGoBackRef.current) {
-      router.history.back();
-    } else {
-      router.navigate({ to: "/" });
-    }
-  };
 
   const [value, setValue] = useState(v ?? "");
   const [desc, setDesc] = useState("");
@@ -84,20 +68,33 @@ function ReportPage() {
         },
       });
       if (r.ok) setDone(true);
-      else setError(r.error ?? "Ошибка");
+      // The server returns codes, never text for people.
+      else if (r.error === "rate_limited") {
+        const minutes = Math.max(1, Math.ceil((r.retryAfterSec ?? 600) / 60));
+        setError(SUBMIT_ERRORS.rateLimited[lang].replace("{min}", String(minutes)));
+      } else setError(SUBMIT_ERRORS.failed[lang]);
     } catch (e) {
       console.error("report submit failed", safeClientErrorReason(e));
-      setError("Не удалось отправить. Попробуйте позже.");
+      setError(isOffline() ? offlineMessage(lang) : SUBMIT_ERRORS.failed[lang]);
     } finally {
       setLoading(false);
     }
   }
 
   const labels = {
-    title: { ru: "Сообщить о случае", uz: "Holat haqida xabar berish", en: "Report an incident" },
+    title: {
+      ru: "Сообщить о случае.",
+      uz: "Holat haqida xabar bering.",
+      en: "Report an incident.",
+    },
+    titleMuted: {
+      ru: "Предупредите других.",
+      uz: "Boshqalarni ogohlantiring.",
+      en: "Warn other people.",
+    },
     sub: {
       ru: "Каждая жалоба проходит модерацию. Не публикуйте чужие персональные данные.",
-      uz: "Har bir shikoyat moderatsiyadan o'tadi. Boshqalarning shaxsiy ma'lumotlarini joylashtirmang.",
+      uz: "Har bir shikoyat moderatsiyadan o‘tadi. Boshqalarning shaxsiy ma’lumotlarini joylashtirmang.",
       en: "Every report is moderated. Do not include other people's personal data.",
     },
     value: {
@@ -105,7 +102,7 @@ function ReportPage() {
       uz: "Raqam, Telegram, havola yoki qisqa matn",
       en: "Number, Telegram, link or short text",
     },
-    desc: { ru: "Что произошло", uz: "Nima sodir bo'ldi", en: "What happened" },
+    desc: { ru: "Что произошло", uz: "Nima sodir bo‘ldi", en: "What happened" },
     scam: {
       ru: "Тип схемы (необязательно)",
       uz: "Sxema turi (ixtiyoriy)",
@@ -113,296 +110,225 @@ function ReportPage() {
     },
     city: { ru: "Город (необязательно)", uz: "Shahar (ixtiyoriy)", en: "City (optional)" },
     amount: {
-      ru: "Сумма потерь, UZS (необязательно)",
-      uz: "Yo'qotilgan summa, UZS (ixtiyoriy)",
+      ru: "Сумма потерь в сумах (необязательно)",
+      uz: "Yo‘qotilgan summa, so‘mda (ixtiyoriy)",
       en: "Amount lost, UZS (optional)",
     },
     send: { ru: "Отправить жалобу", uz: "Shikoyatni yuborish", en: "Submit report" },
     thanks_h: { ru: "Спасибо!", uz: "Rahmat!", en: "Thank you!" },
     thanks_d: {
       ru: "Сигнал отправлен. Спасибо: вы помогли предупредить других людей. Мы проверим его вручную; публичная метка появится только после модерации. Если похожий сигнал уже был, ваш помогает поднять приоритет проверки.",
-      uz: "Signal yuborildi. Rahmat: siz boshqa odamlarni ogohlantirishga yordam berdingiz. Uni qo'lda tekshiramiz; ommaviy belgi faqat moderatsiyadan keyin chiqadi. Agar o'xshash signal oldin bo'lgan bo'lsa, sizniki tekshiruv ustuvorligini oshiradi.",
+      uz: "Signal yuborildi. Rahmat: siz boshqa odamlarni ogohlantirishga yordam berdingiz. Uni qo‘lda tekshiramiz; ommaviy belgi faqat moderatsiyadan keyin chiqadi. Agar o‘xshash signal oldin bo‘lgan bo‘lsa, sizniki tekshiruv ustuvorligini oshiradi.",
       en: "Signal sent. Thank you: you helped warn other people. We'll review it manually; a public label appears only after moderation. If a similar signal already exists, yours helps raise review priority.",
     },
   };
 
   const L = {
-    back: { ru: "Назад", uz: "Orqaga", en: "Back" }[lang],
-    home: { ru: "Главная", uz: "Bosh sahifa", en: "Home" }[lang],
-    crumb: { ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang],
     step1: {
       ru: "Шаг 1 из 2 · заполнение",
-      uz: "1/2 qadam · to'ldirish",
+      uz: "1/2 qadam · to‘ldirish",
       en: "Step 1 of 2 · fill in",
     }[lang],
     step2: { ru: "Шаг 2 из 2 · отправлено", uz: "2/2 qadam · yuborildi", en: "Step 2 of 2 · sent" }[
       lang
     ],
+    eyebrow: { ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang],
+    sending: { ru: "Отправляем…", uz: "Yuborilmoqda…", en: "Sending…" }[lang],
+    failed: { ru: "Ошибка", uz: "Xato", en: "Error" }[lang],
+    idle: {
+      ru: "Анонимно · с проверкой",
+      uz: "Anonim · tekshiriladi",
+      en: "Anonymous · moderated",
+    }[lang],
+    wait: {
+      ru: "Отправляем жалобу на модерацию… Не закрывайте страницу.",
+      uz: "Shikoyat moderatsiyaga yuborilmoqda… Sahifani yopmang.",
+      en: "Sending your report to moderation… Don't close the page.",
+    }[lang],
+    submitting: { ru: "Отправка…", uz: "Yuborilmoqda…", en: "Submitting…" }[lang],
+    home: { ru: "На главную", uz: "Bosh sahifa", en: "Home" }[lang],
+    again: { ru: "Проверить ещё", uz: "Yana tekshirish", en: "Check another" }[lang],
   };
 
-  const Crumbs = ({ stepLabel, current }: { stepLabel: string; current: string }) => (
-    <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-      <div className="flex items-center gap-2 flex-wrap">
-        <a
-          href="/"
-          onClick={goBack}
-          className="apex-pill inline-flex cursor-pointer"
-          aria-label={L.back}
-        >
-          <ArrowLeft className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
-          {L.back}
-        </a>
-        <nav aria-label="breadcrumb" className="flex items-center gap-1.5 apex-mono">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-[#52525B] hover:text-[#18181B] transition-colors"
-          >
-            <Home className="h-3 w-3" strokeWidth={2} />
-            {L.home}
-          </Link>
-          <ChevronRight className="h-3 w-3 text-[#A1A1AA]" strokeWidth={2} />
-          <span className="text-[#18181B]" aria-current="page">
-            {current}
-          </span>
-        </nav>
-      </div>
-      <span className="apex-mono text-[#52525B]">{stepLabel}</span>
-    </div>
-  );
+  const how = {
+    ru: [
+      ["Укажите контакт", "Номер, Telegram, ссылку или короткий текст."],
+      ["Опишите, что произошло", "Пара предложений — без чужих личных данных."],
+      ["Модератор проверит вручную", "Публичная метка появится только после модерации."],
+    ],
+    uz: [
+      ["Kontaktni ko‘rsating", "Raqam, Telegram, havola yoki qisqa matn."],
+      ["Nima bo‘lganini yozing", "Bir-ikki gap — boshqalarning shaxsiy ma’lumotlarisiz."],
+      ["Moderator qo‘lda tekshiradi", "Ommaviy belgi faqat moderatsiyadan keyin chiqadi."],
+    ],
+    en: [
+      ["Add the contact", "A number, Telegram, link or short text."],
+      ["Describe what happened", "A couple of sentences — no other people's personal data."],
+      ["A moderator reviews it", "A public label appears only after moderation."],
+    ],
+  }[lang];
+
+  const status = loading ? "loading" : error ? "error" : "idle";
 
   if (done) {
     return (
-      <div className="apex-page" style={{ maxWidth: 800 }}>
-        <Crumbs stepLabel={L.step2} current={L.crumb} />
-
-        <div className="apex-card apex-frame apex-stripes text-center">
-          <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 text-left">
-            <span className="apex-mono">
-              {{ ru: "Получено", uz: "Qabul qilindi", en: "Received" }[lang]}
+      <div className="vp-home vp-page">
+        <div className="vp-shell">
+          <div className="vp-done">
+            <span className="vp-done-icon" aria-hidden="true">
+              <CheckCircle weight="fill" />
             </span>
-            <span className="apex-status" data-state="success">
-              <span className="apex-status-dot" />
-              <span className="hidden xs:inline">
-                {{ ru: "Жалоба принята", uz: "Shikoyat qabul qilindi", en: "Report queued" }[lang]}
-              </span>
-              <span className="xs:hidden">
-                {{ ru: "Принято", uz: "Qabul", en: "Queued" }[lang]}
-              </span>
+            <span className="vp-status" data-state="success">
+              <i aria-hidden="true" />
+              {L.step2}
             </span>
+            <h1>{labels.thanks_h[lang]}</h1>
+            <p>{labels.thanks_d[lang]}</p>
+            <div className="vp-actions">
+              <Pill to="/">{L.home}</Pill>
+              <Pill to="/check" tone="outline">
+                {L.again}
+              </Pill>
+            </div>
           </div>
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-[4px] border border-[#E2E0D8] bg-white text-emerald-600">
-            <CheckCircle2
-              className="h-6 w-6"
-              strokeWidth={1.75}
-              aria-hidden="true"
-              focusable="false"
-            />
-          </div>
-          <h1 className="apex-h1 mt-5 sm:mt-6">{labels.thanks_h[lang]}</h1>
-          <p className="apex-lead mt-3 sm:mt-4 mx-auto">{labels.thanks_d[lang]}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="apex-page" style={{ maxWidth: 960 }}>
-      <Crumbs stepLabel={L.step1} current={L.crumb} />
-
-      <div className="apex-card apex-frame apex-stripes relative overflow-hidden">
-        {/* Animated progress bar — pinned to the very top of the card */}
-        {loading && <div className="apex-progress absolute top-0 inset-x-0 z-10" aria-hidden />}
-
-        <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
-          <span className="apex-mono">{{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}</span>
-          <span
-            className="apex-status"
-            data-state={loading ? "loading" : error ? "error" : "idle"}
-            aria-live="polite"
-          >
-            <span className="apex-status-dot" />
-            {loading
-              ? { ru: "Отправляем…", uz: "Yuborilmoqda…", en: "Sending…" }[lang]
-              : error
-                ? { ru: "Ошибка", uz: "Xato", en: "Error" }[lang]
-                : {
-                    ru: "Анонимно · с проверкой",
-                    uz: "Anonim · tekshiriladi",
-                    en: "Anonymous · moderated",
-                  }[lang]}
-          </span>
-        </div>
-
-        <div className="mb-8 sm:mb-10 md:mb-12 pb-6 md:pb-8 border-b border-[#E2E0D8] max-w-3xl">
-          <span className="pain-pill">
-            <span className="pain-pill-dot" />
-            {
-              {
-                ru: "Уже столкнулись с обманом? Расскажите",
-                uz: "Aldovga duch keldingizmi? Aytib bering",
-                en: "Got scammed? Tell us — protect others",
-              }[lang]
-            }
-          </span>
-          <p className="label-md mb-3 sm:mb-4">
-            02 — {{ ru: "Жалоба", uz: "Shikoyat", en: "Report" }[lang]}
-          </p>
-          <h1 className="apex-h1">
-            {
-              {
-                ru: (
-                  <>
-                    Сообщить о <span className="font-serif-italic text-[#8B8B92]">случае</span>
-                  </>
-                ),
-                uz: (
-                  <>
-                    Holat haqida{" "}
-                    <span className="font-serif-italic text-[#8B8B92]">xabar berish</span>
-                  </>
-                ),
-                en: (
-                  <>
-                    Report an <span className="font-serif-italic text-[#8B8B92]">incident</span>
-                  </>
-                ),
-              }[lang]
-            }
-          </h1>
-          <p className="apex-lead mt-5 sm:mt-6">{labels.sub[lang]}</p>
-        </div>
-
-        <form
-          onSubmit={onSubmit}
-          aria-busy={loading}
-          className={`mx-auto max-w-2xl space-y-5 sm:space-y-6 transition-opacity ${loading ? "opacity-70 pointer-events-none" : ""}`}
+    <div className="vp-home vp-page">
+      <div className="vp-shell vp-form-layout">
+        <PageHero
+          icon={<Megaphone weight="bold" />}
+          eyebrow={L.eyebrow}
+          title={[labels.title[lang], labels.titleMuted[lang]]}
+          lead={labels.sub[lang]}
         >
-          <div>
-            <label htmlFor="v" className="apex-label">
-              {labels.value[lang]}
-            </label>
-            <input
-              id="v"
-              required
-              maxLength={500}
-              disabled={loading}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="+998 90 ••• •• ••  /  @username  /  https://…"
-              className="apex-field"
-            />
+          <ol className="vp-howlist">
+            {how.map(([title, detail], index) => (
+              <li key={title}>
+                <span aria-hidden="true">{index + 1}</span>
+                <span>
+                  <strong>{title}</strong>
+                  {detail}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </PageHero>
+
+        <form onSubmit={onSubmit} aria-busy={loading} className="vp-formcard">
+          <div className="vp-formcard-head">
+            <span className="vp-checker-label">{L.step1}</span>
+            <span className="vp-status" data-state={status} aria-live="polite">
+              <i aria-hidden="true" />
+              {loading ? L.sending : error ? L.failed : L.idle}
+            </span>
           </div>
 
-          <div>
-            <label htmlFor="d" className="apex-label">
-              {labels.desc[lang]}
-            </label>
-            <textarea
-              id="d"
-              required
-              minLength={5}
-              maxLength={5000}
-              rows={6}
-              disabled={loading}
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              className="apex-field"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-            <div>
-              <label htmlFor="s" className="apex-label">
-                {labels.scam[lang]}
-              </label>
+          <div className="vp-formcard-body">
+            <div className="vp-field">
+              <label htmlFor="v">{labels.value[lang]}</label>
               <input
-                id="s"
-                maxLength={80}
+                id="v"
+                required
+                maxLength={500}
                 disabled={loading}
-                value={scamType}
-                onChange={(e) => setScamType(e.target.value)}
-                className="apex-field"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="+998 90 ••• •• ••  /  @username  /  https://…"
+                className="vp-input"
               />
             </div>
-            <div>
-              <label htmlFor="c" className="apex-label">
-                {labels.city[lang]}
-              </label>
-              <input
-                id="c"
-                maxLength={80}
+
+            <div className="vp-field">
+              <label htmlFor="d">{labels.desc[lang]}</label>
+              <textarea
+                id="d"
+                required
+                minLength={5}
+                maxLength={5000}
+                rows={6}
                 disabled={loading}
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="apex-field"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                className="vp-input"
               />
             </div>
-          </div>
 
-          <div>
-            <label htmlFor="a" className="apex-label">
-              {labels.amount[lang]}
-            </label>
-            <input
-              id="a"
-              inputMode="numeric"
-              disabled={loading}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="apex-field"
-            />
-          </div>
+            <div className="vp-field-row">
+              <div className="vp-field">
+                <label htmlFor="s">{labels.scam[lang]}</label>
+                <input
+                  id="s"
+                  maxLength={80}
+                  disabled={loading}
+                  value={scamType}
+                  onChange={(e) => setScamType(e.target.value)}
+                  className="vp-input"
+                />
+              </div>
+              <div className="vp-field">
+                <label htmlFor="c">{labels.city[lang]}</label>
+                <input
+                  id="c"
+                  maxLength={80}
+                  disabled={loading}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="vp-input"
+                />
+              </div>
+            </div>
 
-          {error && (
-            <p className="apex-error" role="alert">
-              {error}
-            </p>
-          )}
+            <div className="vp-field">
+              <label htmlFor="a">{labels.amount[lang]}</label>
+              <input
+                id="a"
+                inputMode="numeric"
+                disabled={loading}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="vp-input"
+              />
+            </div>
 
-          {loading && (
-            <div
-              className="flex items-center gap-3 rounded-[6px] border border-[#FDBA74]/40 bg-[#FFF7ED] px-4 py-3"
-              role="status"
-              aria-live="polite"
-            >
-              <Loader2 className="h-4 w-4 text-[#C2410C] animate-spin shrink-0" />
-              <p className="text-[13px] text-[#9A3412] leading-snug">
-                {
-                  {
-                    ru: "Отправляем жалобу на модерацию… Не закрывайте страницу.",
-                    uz: "Shikoyat moderatsiyaga yuborilmoqda… Sahifani yopmang.",
-                    en: "Sending your report to moderation… Don't close the page.",
-                  }[lang]
-                }
+            {error && (
+              <p className="vp-alert vp-alert--error" role="alert">
+                <WarningCircle weight="fill" aria-hidden="true" />
+                {error}
               </p>
-            </div>
-          )}
+            )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 pt-1">
-            <button
+            {loading && (
+              <p className="vp-alert vp-alert--info" role="status" aria-live="polite">
+                <CircleNotch weight="bold" aria-hidden="true" className="vp-spin" />
+                {L.wait}
+              </p>
+            )}
+
+            <PillButton
               type="submit"
               disabled={loading}
               aria-disabled={loading}
-              className="fancy-btn sm:min-w-[220px]"
-            >
-              <span className="fancy-points" aria-hidden="true">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <i key={i} className="fancy-point" />
-                ))}
-              </span>
-              <span className="fancy-inner">
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              className="vp-formcard-submit"
+              icon={
+                loading ? (
+                  <CircleNotch weight="bold" className="vp-spin" />
                 ) : (
-                  <Send className="h-4 w-4" aria-hidden="true" />
-                )}
-                {loading
-                  ? { ru: "Отправка…", uz: "Yuborilmoqda…", en: "Submitting…" }[lang]
-                  : labels.send[lang]}
-              </span>
-            </button>
-            <p className="apex-mono text-[#71717A] leading-relaxed">{t("privacy_promise", lang)}</p>
+                  <PaperPlaneRight weight="fill" />
+                )
+              }
+            >
+              {loading ? L.submitting : labels.send[lang]}
+            </PillButton>
           </div>
+
+          <p className="vp-formcard-foot">
+            <Lock weight="bold" aria-hidden="true" />
+            {t("privacy_promise", lang)}
+          </p>
         </form>
       </div>
     </div>

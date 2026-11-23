@@ -342,6 +342,8 @@ export interface InlineQueryCtx {
  * depends only on this abstraction, never on the concrete modules.
  */
 export interface Handlers {
+  /** Exact-update replay of an already-saved report image card, never OCR. */
+  handleReportImageDeliveryRecovery?(ctx: HandlerCtx): Promise<void>;
   /** Commands: /start, /call, /lang, /help, /safety, /check, /report, /emergency (8.2). */
   handleCommand(cmd: ParsedCommand, ctx: HandlerCtx): Promise<void>;
   /** One step of an active multi-step scenario, e.g. /report (8.4). */
@@ -394,6 +396,7 @@ export interface Handlers {
 export type ImageRouteMediaKind = "video_thumbnail";
 
 export type RouteAction =
+  | { kind: "reportImageDeliveryRecovery" }
   | { kind: "callback"; data: string; callbackQueryId: string }
   | { kind: "command"; command: ParsedCommand }
   | { kind: "unknownCommand" }
@@ -601,6 +604,11 @@ function imageRoute(
  * owns side effects.
  */
 export function decideRoute(update: TelegramUpdate, session: Session): RouteAction {
+  // This old upload already advanced the scenario. Do not reinterpret it as a
+  // new answer/image after a restart (including sealed/invalid recovery state).
+  if (session.scenarioData.reportImageDelivery?.updateId === update.update_id) {
+    return { kind: "reportImageDeliveryRecovery" };
+  }
   // 1) Callback queries take top priority.
   if (update.callback_query) {
     return {
@@ -893,6 +901,9 @@ export async function dispatchUpdate(
   }
 
   switch (action.kind) {
+    case "reportImageDeliveryRecovery":
+      await handlers.handleReportImageDeliveryRecovery?.(ctx);
+      break;
     case "callback":
       await handlers.handleCallback(action.data, ctx, action.callbackQueryId);
       break;

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,60 +10,65 @@ type AuthState = {
   signOut: () => Promise<void>;
 };
 
-const AuthCtx = createContext<AuthState>({
-  user: null,
-  session: null,
-  loading: true,
-  isAdmin: false,
-  signOut: async () => {},
-});
+// Admin-only session state. It lives in this module, started by the first
+// useAuth() call, instead of a provider in the root layout: the Supabase
+// client then loads with the login/admin chunks and not on public pages.
+const signOut = async () => {
+  await supabase.auth.signOut();
+};
+const INITIAL: AuthState = { user: null, session: null, loading: true, isAdmin: false, signOut };
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+let state = INITIAL;
+let started = false;
+let rolesFor: string | null = null;
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const uid = session?.user?.id;
-    if (!uid) {
-      setIsAdmin(false);
-      return;
-    }
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", uid)
-      .then(({ data }) => {
-        setIsAdmin(!!data?.some((r) => r.role === "admin"));
-      });
-  }, [session?.user?.id]);
-
-  return (
-    <AuthCtx.Provider
-      value={{
-        user: session?.user ?? null,
-        session,
-        loading,
-        isAdmin,
-        signOut: async () => {
-          await supabase.auth.signOut();
-        },
-      }}
-    >
-      {children}
-    </AuthCtx.Provider>
-  );
+function update(patch: Partial<AuthState>) {
+  state = { ...state, ...patch };
+  for (const listener of listeners) listener();
 }
 
-export const useAuth = () => useContext(AuthCtx);
+function applySession(session: Session | null) {
+  update({ session, user: session?.user ?? null });
+  const uid = session?.user?.id ?? null;
+  if (uid === rolesFor) return;
+  rolesFor = uid;
+  if (!uid) {
+    update({ isAdmin: false });
+    return;
+  }
+  void supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", uid)
+    .then(({ data }) => {
+      // A newer session may have replaced this one while the roles loaded.
+      if (rolesFor === uid) update({ isAdmin: !!data?.some((r) => r.role === "admin") });
+    });
+}
+
+function start() {
+  if (started) return;
+  started = true;
+  supabase.auth.onAuthStateChange((_event, session) => applySession(session));
+  void supabase.auth.getSession().then(({ data }) => {
+    applySession(data.session);
+    update({ loading: false });
+  });
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function useAuth(): AuthState {
+  useEffect(start, []);
+  return useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => INITIAL,
+  );
+}

@@ -1,6 +1,16 @@
 # Database
 
-Postgres via Supabase. Schema = `public`. RLS is enabled on all app tables. Source of truth: `supabase/migrations/*.sql`; generated TypeScript types live in `src/integrations/supabase/types.ts`.
+Postgres via Supabase. `public` is the primary exposed application schema; internal operational/security objects live in `private`. RLS is enabled on all app tables, and `private` objects rely on explicit least-privilege grants. Source of truth: `supabase/migrations/*.sql` (38 migrations total: 33 deployed through `20260729131000`, plus 5 candidate migrations below); generated TypeScript types live in `src/integrations/supabase/types.ts`.
+
+## Candidate migrations (33 → 38, pending approved cutover)
+
+- `20260904120000_telegram_media_provider_consent_claim.sql`: adds `private.telegram_media_provider_consents` and service-role-only register/grant/revoke/claim RPCs fenced by Telegram update and polling-leader leases. Stores user/chat/kind/prompt/report-generation and terminal metadata only — never media bytes, file IDs, OCR, transcripts or provider payloads.
+- `20261007182550_telegram_media_consent_monotonic_order.sql`: prevents TTL expiry from resetting an existing consent row's monotonic `update_id` ordering watermark.
+- `20261007192049_retention_runtime_concurrency.sql`: adds transaction-scoped try-advisory singleton locking (`55P03` / `retention_prune_busy`) and function-level `lock_timeout = '5s'` to `private.prune_app_retention`.
+- `20261009041643_reputation_appeal_atomic_submission.sql`: adds service-role-only `submit_reputation_appeal` RPC using globally ordered target-alias advisory locks and open-row locking for atomic deduplication and bounded first-row notification eligibility.
+- `20261009073348_web_ocr_ticket_replay_guard.sql`: adds `private.web_ocr_ticket_claims`, service-role-only atomic consume RPC, and scheduled expiry pruning for single-use 10-minute Web OCR tickets (UUID + issue/expiry timestamps only; no images, digests, tickets or IPs).
+
+First-action advice updates (Patch v4) add no new column or migration: the optional `carrier_dial_request` follow-up topic reuses the existing 20-minute enum-only Direct follow-up context (no dial string or amount stored), the bank SMS presentation hint is UI-only and never stored, and `operator_requests_dial_code`, `carrier_command_already_dialed` and `reported_unauthorized_debit` use the existing `reason_codes` array (`reported_unauthorized_debit` records a user report, not a confirmed bank transaction).
 
 ## Enums
 

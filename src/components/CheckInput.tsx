@@ -1,48 +1,151 @@
-import { useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import {
-  Search,
-  Send,
-  Loader2,
-  ImagePlus,
-  X,
-  Info,
-  AlertTriangle,
-  CheckCircle2,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight as SignalArrowRight,
-  ChatText,
   CheckCircle as SignalCheckCircle,
-  LinkSimple,
-  PaperPlaneTilt,
-  Phone,
   Sparkle as SignalSparkle,
   UploadSimple,
   WarningCircle,
+  X,
 } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/lang-context";
-import { t } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
 import { safeCheckErrorMessage, safeClientErrorReason } from "@/lib/client-error";
 import { useServerFn } from "@tanstack/react-start";
-import { checkInput, ocrExtract, type MetaIntentCheckResult } from "@/lib/check.functions";
-import { RiskResultCard, type CheckResult } from "./RiskResultCard";
+import {
+  checkInput,
+  issueOcrTicket,
+  ocrExtract,
+  type MetaIntentCheckResult,
+} from "@/lib/check.functions";
+import type { CheckResult } from "./RiskResultCard";
 import { ADVICE, REASON_LABELS } from "@/lib/risk/rules";
+import { filterAdvice } from "@/lib/telegram/advice-filter";
+import { reportedBankSms } from "@/lib/risk/reported-bank-sms";
+import { displayRiskScore } from "@/lib/risk/display-score";
+import { createWebOcrLifecycle, type WebOcrSelection } from "@/lib/web-ocr-lifecycle";
+import { digestWebOcrImage } from "@/lib/web-ocr-image-digest";
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const MIN_INPUT_CHARS = 3;
 const MAX_INPUT_CHARS = 2000;
 
-type Status = "idle" | "loading" | "success" | "error";
-
-const SIGNAL_INPUT_HINTS = [
-  { id: "message", label: "Сообщение", icon: ChatText },
-  { id: "phone", label: "Телефон", icon: Phone },
-  { id: "telegram", label: "Telegram", icon: PaperPlaneTilt },
-  { id: "link", label: "Ссылка", icon: LinkSimple },
-] as const;
+// Homepage ("signal") copy. The field starts empty: a prefilled sample with a
+// ready-made red verdict read as the visitor's own result in user review.
+// Examples avoid phone numbers: any +998 sample may belong to a real person.
+const SIGNAL_COPY = {
+  ru: {
+    examplesLabel: "Примеры",
+    examples: [
+      {
+        label: "SMS «из банка»",
+        sample:
+          "Служба безопасности банка: зафиксирована подозрительная операция. Назовите код из SMS, чтобы отменить перевод.",
+      },
+      {
+        label: "Ссылка на оплату",
+        sample: "Посылка не доставлена. Оплатите 27 000 сум, иначе вернём: uzpost-pay.top",
+      },
+      {
+        label: "Приложение «для защиты»",
+        sample:
+          "Ваша карта под угрозой. Установите защитное приложение банка: bank-zashita.top/app.apk",
+      },
+    ],
+    inputLabel: "Что проверить",
+    placeholder: "Вставьте текст сообщения, номер или ссылку…",
+    attach: "Скриншот",
+    reading: "Читаем…",
+    check: "Проверить риск",
+    checking: "Проверяем…",
+    loadingTitle: "Проверяем признаки обмана",
+    loadingOcr: "Читаем скриншот",
+    loadingSub: "Ссылки, давление, просьбы о кодах и переводах",
+    resultLabel: "Результат проверки",
+    safe: "Низкий риск",
+    suspicious: "Подозрительно",
+    noReasons: "Явных опасных признаков не найдено",
+    next: "Что сделать сейчас",
+    screenshot: "Скриншот",
+    ocrRecognized: "Текст распознан — проверьте его перед анализом.",
+    ocrText: "Текст со скриншота",
+    removeShot: "Удалить скриншот",
+  },
+  uz: {
+    examplesLabel: "Misollar",
+    examples: [
+      {
+        label: "SMS «bankdan»",
+        sample:
+          "Bank xavfsizlik xizmati: shubhali amaliyot qayd etildi. O‘tkazmani bekor qilish uchun SMS-kodni ayting.",
+      },
+      {
+        label: "To‘lov havolasi",
+        sample:
+          "Posilkangiz yetkazilmadi. 27 000 so‘m to‘lang, aks holda qaytariladi: uzpost-pay.top",
+      },
+      {
+        label: "«Himoya» ilovasi",
+        sample:
+          "Kartangiz xavf ostida. Bankning himoya ilovasini o‘rnating: bank-himoya.top/app.apk",
+      },
+    ],
+    inputLabel: "Nimani tekshirish kerak",
+    placeholder: "Xabar matni, raqam yoki havolani joylashtiring…",
+    attach: "Skrinshot",
+    reading: "O‘qilmoqda…",
+    check: "Xavfni tekshirish",
+    checking: "Tekshirilmoqda…",
+    loadingTitle: "Aldov belgilarini tekshiryapmiz",
+    loadingOcr: "Skrinshot o‘qilmoqda",
+    loadingSub: "Havolalar, bosim, kod va pul o‘tkazish so‘rovlari",
+    resultLabel: "Tekshiruv natijasi",
+    safe: "Past xavf",
+    suspicious: "Shubhali",
+    noReasons: "Aniq xavf belgilari topilmadi",
+    next: "Hozir nima qilish kerak",
+    screenshot: "Skrinshot",
+    ocrRecognized: "Matn aniqlandi — tahlildan oldin uni tekshirib chiqing.",
+    ocrText: "Skrinshotdagi matn",
+    removeShot: "Skrinshotni o‘chirish",
+  },
+  en: {
+    examplesLabel: "Examples",
+    examples: [
+      {
+        label: "“Bank” SMS",
+        sample:
+          "Bank security service: a suspicious transaction was detected. Tell us the SMS code to cancel the transfer.",
+      },
+      {
+        label: "Payment link",
+        sample:
+          "Your parcel was not delivered. Pay 27,000 UZS or it will be returned: uzpost-pay.top",
+      },
+      {
+        label: "“Protection” app",
+        sample: "Your card is at risk. Install the bank’s protection app: bank-secure.top/app.apk",
+      },
+    ],
+    inputLabel: "What to check",
+    placeholder: "Paste the message text, number or link…",
+    attach: "Screenshot",
+    reading: "Reading…",
+    check: "Check the risk",
+    checking: "Checking…",
+    loadingTitle: "Checking for scam signs",
+    loadingOcr: "Reading the screenshot",
+    loadingSub: "Links, pressure, requests for codes and transfers",
+    resultLabel: "Check result",
+    safe: "Low risk",
+    suspicious: "Suspicious",
+    noReasons: "No clear danger signals found",
+    next: "What to do now",
+    screenshot: "Screenshot",
+    ocrRecognized: "Text recognised — review it before the check.",
+    ocrText: "Text from the screenshot",
+    removeShot: "Remove screenshot",
+  },
+} as const;
 
 function isMetaIntentResult(value: unknown): value is MetaIntentCheckResult {
   return (
@@ -54,41 +157,44 @@ function isMetaIntentResult(value: unknown): value is MetaIntentCheckResult {
   );
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
+function fileToDataUrl(file: File) {
+  const reader = new FileReader();
+  const promise = new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.onabort = () => reject(new DOMException("Image read cancelled", "AbortError"));
+    reader.readAsDataURL(file);
   });
+  return {
+    promise,
+    abort() {
+      if (reader.readyState === FileReader.LOADING) reader.abort();
+    },
+  };
 }
 
-function validateInput(value: string, hasOcr: boolean): string | null {
+function validateInput(value: string, hasOcr: boolean, lang: Lang): string | null {
   const v = value.trim();
-  if (!v && !hasOcr) return "Введите номер, ссылку, username или текст сообщения.";
+  if (!v && !hasOcr) return t("check_input_required", lang);
   if (!hasOcr && v.length < MIN_INPUT_CHARS)
-    return `Слишком короткий ввод — минимум ${MIN_INPUT_CHARS} символа.`;
+    return t("check_input_too_short", lang).replace("{min}", String(MIN_INPUT_CHARS));
   if (v.length > MAX_INPUT_CHARS)
-    return `Слишком длинный текст — максимум ${MAX_INPUT_CHARS} символов.`;
+    return t("check_input_too_long", lang).replace("{max}", String(MAX_INPUT_CHARS));
   return null;
 }
 
 export function CheckInput({
   defaultValue = "",
-  hideInlineResult = false,
   onResult,
-  variant = "default",
 }: {
   defaultValue?: string;
-  hideInlineResult?: boolean;
   onResult?: (r: CheckResult | null) => void;
-  variant?: "default" | "signal";
 }) {
   const { lang } = useLang();
-  const navigate = useNavigate();
   const [value, setValue] = useState(defaultValue);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
+  const [imageSelection, setImageSelection] = useState<WebOcrSelection | null>(null);
   const [ocrText, setOcrText] = useState("");
   const [ocrPreviewOpen, setOcrPreviewOpen] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -97,48 +203,114 @@ export function CheckInput({
   const [metaResponse, setMetaResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
-  const [signalEdited, setSignalEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [checkRevision] = useState(() => ({ value: 0 }));
+  const [ocrLifecycle] = useState(() => createWebOcrLifecycle());
+  const activeReadRef = useRef<{
+    selection: WebOcrSelection;
+    read: ReturnType<typeof fileToDataUrl>;
+  } | null>(null);
   const checkFn = useServerFn(checkInput);
+  const issueOcrTicketFn = useServerFn(issueOcrTicket);
   const ocrFn = useServerFn(ocrExtract);
 
+  useEffect(() => {
+    // StrictMode may set up again after cleanup on the same component instance.
+    ocrLifecycle.activate();
+    return () => {
+      checkRevision.value++;
+      ocrLifecycle.dispose();
+      const pending = activeReadRef.current;
+      activeReadRef.current = null;
+      pending?.read.abort();
+    };
+  }, [checkRevision, ocrLifecycle]);
+
+  function abortActiveRead() {
+    const pending = activeReadRef.current;
+    activeReadRef.current = null;
+    pending?.read.abort();
+  }
+
+  // A verdict belongs to the submitted draft, never to its replacement.
+  function invalidateCheck() {
+    checkRevision.value++;
+    setLoading(false);
+    setResult(null);
+    setMetaResponse(null);
+    setError(null);
+    onResult?.(null);
+  }
+
   const validationMsg = useMemo(
-    () => (touched ? validateInput(value, ocrPreviewOpen) : null),
-    [value, ocrPreviewOpen, touched],
+    () => (touched ? validateInput(value, ocrPreviewOpen, lang) : null),
+    [value, ocrPreviewOpen, touched, lang],
   );
 
-  const status: Status = error
-    ? "error"
-    : loading || ocrLoading
-      ? "loading"
-      : result || metaResponse
-        ? "success"
-        : "idle";
-
-  const statusLabel: Record<Status, string> = {
-    idle: { ru: "Готово", uz: "Tayyor", en: "Ready" }[lang],
-    loading: ocrLoading
-      ? { ru: "Читаем картинку…", uz: "Rasm o'qilmoqda…", en: "Reading image…" }[lang]
-      : { ru: "Проверяем…", uz: "Tekshirilmoqda…", en: "Checking…" }[lang],
-    success: { ru: "Готово", uz: "Tayyor", en: "Done" }[lang],
-    error: { ru: "Ошибка", uz: "Xato", en: "Error" }[lang],
-  };
-
   async function onPickFile(file: File | undefined) {
+    // Cancelling the native chooser is not a new selection or new consent.
+    if (!file) return;
+    invalidateCheck();
+    const selection = ocrLifecycle.startSelection();
+    if (!selection) return;
+    // Invalidate first: abort may synchronously settle an older FileReader.
+    abortActiveRead();
     setError(null);
+    setImageDataUrl(null);
+    setImageName(null);
+    setImageSelection(null);
     setOcrPreviewOpen(false);
     setOcrText("");
-    if (!file) return;
+    setOcrLoading(false);
     if (file.size > MAX_IMAGE_BYTES) {
       setError(t("screenshot_too_large", lang));
+      clearImage();
       return;
     }
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const read = fileToDataUrl(file);
+      activeReadRef.current = { selection, read };
+      const dataUrl = await read.promise;
+      if (!ocrLifecycle.completeRead(selection)) return;
       setImageDataUrl(dataUrl);
       setImageName(file.name);
-      setOcrLoading(true);
-      const { text } = await ocrFn({ data: { image: dataUrl, lang } });
+      setImageSelection(selection);
+    } catch (e: unknown) {
+      if (!ocrLifecycle.isCurrentSelection(selection)) return;
+      console.error("screenshot staging failed", safeClientErrorReason(e));
+      setError(t("ocr_failed", lang));
+      clearImage();
+    } finally {
+      if (activeReadRef.current?.selection === selection) activeReadRef.current = null;
+    }
+  }
+
+  async function requestOcrWithConsent() {
+    if (!imageDataUrl || !imageSelection) return;
+    // Claim the selection captured by this rendered button, never the latest
+    // image through a stale handler. This lock is synchronous before any await.
+    const attempt = ocrLifecycle.claimOcr(imageSelection);
+    if (!attempt) return;
+    setError(null);
+    setOcrLoading(true);
+    try {
+      const imageDigest = await digestWebOcrImage(imageDataUrl);
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
+      const { ticket } = await issueOcrTicketFn({
+        data: { imageDigest, lang, externalProviderConsent: true },
+      });
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
+      // Keep this ticket for the captured selection. Never automatically mint
+      // another after an uncertain issuer/OCR response or retry the image.
+      const { text } = await ocrFn({
+        data: {
+          image: imageDataUrl,
+          lang,
+          externalProviderConsent: true,
+          operationTicket: ticket,
+        },
+      });
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
       if (text && text.trim()) {
         setOcrText(text.trim());
         setOcrPreviewOpen(true);
@@ -147,36 +319,44 @@ export function CheckInput({
         clearImage();
       }
     } catch (e: unknown) {
+      if (!ocrLifecycle.isCurrentAttempt(attempt)) return;
       console.error("ocr extraction failed", safeClientErrorReason(e));
       const msg = (e as { message?: string })?.message ?? "";
       if (msg.includes("rate_limited") || msg.includes("429")) setError(t("rate_limited", lang));
       else setError(t("ocr_failed", lang));
       clearImage();
     } finally {
-      setOcrLoading(false);
+      if (ocrLifecycle.finishAttempt(attempt)) setOcrLoading(false);
     }
   }
 
   function clearImage() {
+    ocrLifecycle.clear();
+    abortActiveRead();
     setImageDataUrl(null);
     setImageName(null);
+    setImageSelection(null);
     setOcrText("");
     setOcrPreviewOpen(false);
+    setOcrLoading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function run() {
     setTouched(true);
-    const vmsg = validateInput(value, ocrPreviewOpen);
+    const vmsg = validateInput(value, ocrPreviewOpen, lang);
     if (vmsg) {
       setError(vmsg);
       return;
     }
     if (loading) return;
+    const submittedRevision = checkRevision.value;
     setLoading(true);
     setError(null);
     setResult(null);
     setMetaResponse(null);
+    onResult?.(null);
+    const checkedImageSelection = ocrPreviewOpen ? imageSelection : null;
     try {
       const input = ocrPreviewOpen
         ? value.trim()
@@ -184,132 +364,99 @@ export function CheckInput({
           : ocrText.trim()
         : value.trim().slice(0, MAX_INPUT_CHARS);
       const r = await checkFn({ data: { input, lang } });
+      if (checkedImageSelection && !ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+        return;
+      }
+      if (submittedRevision !== checkRevision.value) return;
       if (isMetaIntentResult(r)) {
         setMetaResponse(r.response);
         onResult?.(null);
-        if (ocrPreviewOpen) clearImage();
+        if (checkedImageSelection && ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+          clearImage();
+        }
         return;
       }
-      setResult(r as CheckResult);
-      onResult?.(r as CheckResult);
-      if (ocrPreviewOpen) clearImage();
+      const current: CheckResult = {
+        ...(r as CheckResult),
+        reportedBankSms: reportedBankSms(input),
+      };
+      setResult(current);
+      onResult?.(current);
+      if (checkedImageSelection && ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+        clearImage();
+      }
     } catch (e: unknown) {
+      if (checkedImageSelection && !ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
+        return;
+      }
+      if (submittedRevision !== checkRevision.value) return;
       console.error("check failed", safeClientErrorReason(e));
       setError(safeCheckErrorMessage(e, lang));
     } finally {
-      setLoading(false);
+      if (submittedRevision === checkRevision.value) setLoading(false);
     }
   }
 
-  const canSubmit = (!!value.trim() || ocrPreviewOpen) && !loading && !validationMsg;
   const charCount = value.trim().length;
 
-  if (variant === "signal") {
-    const showDemoResult =
-      !signalEdited && !result && !metaResponse && !error && !!defaultValue.trim();
-    const visualLevel = result?.level ?? "high_risk";
-    const signalResultClass = {
-      safe: "signal-result-safe",
-      unknown: "signal-result-neutral",
-      suspicious: "signal-result-warn",
-      high_risk: "signal-result-danger",
-    }[visualLevel];
-    const levelLabel = result
-      ? {
-          safe: "Низкий риск",
-          unknown: "Недостаточно данных",
-          suspicious: "Подозрительно",
-          high_risk: "Высокий риск",
-        }[result.level]
-      : "Высокий риск";
-    const mappedReasons = result
-      ? result.reasons.slice(0, 2).map((reason) => REASON_LABELS[reason][lang])
-      : [];
-    const resultReasons =
-      mappedReasons.length > 0
-        ? mappedReasons
-        : result
-          ? [
-              {
-                ru: "Явных опасных признаков не найдено",
-                uz: "Aniq xavf belgilari topilmadi",
-                en: "No clear danger signals found",
-              }[lang],
-            ]
-          : ["Просят сообщить код из SMS", "Создают давление и срочность"];
-    const nextAction = result
-      ? ADVICE[result.level][lang][0]
-      : "Положите трубку и перезвоните по официальному номеру банка.";
+  const copy = SIGNAL_COPY[lang];
+  const visualLevel = result?.level ?? "unknown";
+  const signalResultClass = {
+    safe: "signal-result-safe",
+    unknown: "signal-result-neutral",
+    suspicious: "signal-result-warn",
+    high_risk: "signal-result-danger",
+  }[visualLevel];
+  const levelLabel = result
+    ? {
+        safe: copy.safe,
+        unknown: t("risk_unknown", lang),
+        suspicious: copy.suspicious,
+        high_risk: t("risk_high", lang),
+      }[result.level]
+    : "";
+  const mappedReasons = result
+    ? result.reasons.slice(0, 2).map((reason) => REASON_LABELS[reason][lang])
+    : [];
+  const resultReasons = mappedReasons.length > 0 ? mappedReasons : [copy.noReasons];
+  const nextAction = result
+    ? (filterAdvice(result.level, result.reasons, lang, {
+        reportedBankSms: result.reportedBankSms,
+      })[0] ?? ADVICE[result.level][lang][0])
+    : "";
+  const displayScore = result ? displayRiskScore(result.score) : 0;
+  const replaceValue = (next: string) => {
+    invalidateCheck();
+    setValue(next);
+  };
+  const editOcrText = (next: string) => {
+    invalidateCheck();
+    setOcrText(next);
+  };
+  const removeImage = () => {
+    invalidateCheck();
+    clearImage();
+  };
 
-    return (
-      <>
-        <div className="smart-input-guide" aria-label="Что можно проверить">
-          <div>
-            <SignalSparkle weight="fill" aria-hidden="true" />
-            <span>
-              <strong>Один умный ввод</strong>
-              Тип данных распознается автоматически
-            </span>
-          </div>
-          <ul>
-            {SIGNAL_INPUT_HINTS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.id}>
-                  <Icon aria-hidden="true" />
-                  {item.label}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        <label className="check-field">
-          <span className="sr-only">Введите данные для проверки</span>
+  return (
+    <>
+      <div className="check-field">
+        <label>
+          <span className="sr-only">{copy.inputLabel}</span>
           <textarea
             value={value}
-            onChange={(event) => {
-              const next = event.target.value;
-              setValue(next);
-              setSignalEdited(true);
-              setError(null);
-              setResult(null);
-              setMetaResponse(null);
-              onResult?.(null);
-            }}
+            onChange={(event) => replaceValue(event.target.value)}
             onBlur={() => setTouched(true)}
             onKeyDown={(event) => {
               if ((event.metaKey || event.ctrlKey) && event.key === "Enter") void run();
             }}
-            placeholder="Вставьте номер, ссылку или текст сообщения"
+            placeholder={copy.placeholder}
             rows={5}
             maxLength={MAX_INPUT_CHARS}
             aria-invalid={!!validationMsg}
           />
-          <span className="field-counter">
-            {charCount} / {MAX_INPUT_CHARS}
-          </span>
         </label>
-
-        {ocrPreviewOpen && (
-          <div className="signal-ocr-preview">
-            <div>
-              <strong>{imageName || "Скриншот"}</strong>
-              <span>Текст распознан — проверьте его перед анализом.</span>
-            </div>
-            <textarea
-              value={ocrText}
-              onChange={(event) => setOcrText(event.target.value)}
-              rows={3}
-              aria-label="Текст со скриншота"
-            />
-            <button type="button" onClick={clearImage}>
-              Удалить скриншот
-            </button>
-          </div>
-        )}
-
-        <div className="checker-actions">
+        <div className="check-field-bar">
           <input
             ref={fileInputRef}
             type="file"
@@ -323,342 +470,148 @@ export function CheckInput({
             onClick={() => fileInputRef.current?.click()}
             disabled={ocrLoading}
           >
-            <UploadSimple />
-            {ocrLoading ? "Читаем скриншот…" : "Прикрепить скриншот"}
+            <UploadSimple aria-hidden="true" />
+            {ocrLoading ? copy.reading : copy.attach}
           </button>
-          <button
-            className="check-button animated-orange-cta"
-            type="button"
-            onClick={() => void run()}
-            disabled={!canSubmit || ocrLoading}
-          >
-            <span className="points_wrapper" aria-hidden="true">
-              {Array.from({ length: 10 }).map((_, index) => (
-                <i className="point" key={index} />
-              ))}
-            </span>
-            <span className="animated-cta-inner">
-              {loading ? "Анализируем…" : "Проверить риск"}
-              {!loading && <SignalArrowRight weight="bold" />}
-            </span>
-          </button>
-        </div>
-
-        <div
-          className={`result-panel ${
-            loading || ocrLoading
-              ? "result-loading"
-              : result || showDemoResult
-                ? `result-result ${signalResultClass}`
-                : error
-                  ? "result-error"
-                  : "result-idle"
-          }`}
-          aria-live="polite"
-        >
-          {loading || ocrLoading ? (
-            <div className="loading-state">
-              <span className="loading-ring" />
-              <div>
-                <strong>{ocrLoading ? "Читаем скриншот" : "Проверяем сигналы риска"}</strong>
-                <small>Ссылки, давление, просьбы о кодах и переводе</small>
-              </div>
-            </div>
-          ) : result || showDemoResult ? (
-            <>
-              {showDemoResult && (
-                <div className="demo-result-note">
-                  <SignalSparkle weight="fill" aria-hidden="true" />
-                  <span>
-                    <strong>Демо-пример</strong>
-                    Замените текст выше своим и нажмите «Проверить риск».
-                  </span>
-                </div>
-              )}
-              <div className="result-summary">
-                <span className="risk-icon">
-                  {visualLevel === "safe" ? (
-                    <SignalCheckCircle weight="fill" />
-                  ) : (
-                    <WarningCircle weight="fill" />
-                  )}
-                </span>
-                <div>
-                  <span className="result-label">
-                    {showDemoResult ? "Пример результата" : "Результат проверки"}
-                  </span>
-                  <strong>{levelLabel}</strong>
-                </div>
-                <span className="risk-score">{result?.score ?? 88} / 100</span>
-              </div>
-              <div className="reason-list">
-                {resultReasons.map((reason) => (
-                  <span key={reason}>{reason}</span>
-                ))}
-              </div>
-              <div className="safe-action">
-                <SignalCheckCircle weight="fill" />
-                <div>
-                  <small>Что сделать прямо сейчас</small>
-                  <strong>{nextAction}</strong>
-                </div>
-              </div>
-            </>
-          ) : error ? (
-            <div className="idle-state signal-error-state">
-              <WarningCircle weight="fill" />
-              {error}
-            </div>
-          ) : metaResponse ? (
-            <div className="idle-state">
-              <SignalSparkle />
-              {metaResponse}
-            </div>
-          ) : (
-            <div className="idle-state">
-              <SignalSparkle />
-              Результат появится здесь и будет объяснён простыми словами.
-            </div>
-          )}
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <div className="apex-frame bg-white rounded-[10px] border border-[#E2E0D8] focus-within:border-[#0B0B0F]/30 focus-within:shadow-[0_0_0_3px_rgba(11,11,15,0.06)] overflow-hidden">
-        <span className="apex-scan" aria-hidden />
-
-        {/* Header bar */}
-        <div className="flex items-center justify-between gap-3 px-7 pt-5 pb-3 border-b border-[#E2E0D8]/60">
-          <span className="apex-mono">
-            {{ ru: "Ввод", uz: "Kiritish", en: "Input" }[lang]} · {lang.toUpperCase()}
-          </span>
-          <span className="apex-status" data-state={status} aria-live="polite">
-            <span className="apex-status-dot" />
-            {statusLabel[status]}
-          </span>
-        </div>
-
-        {/* Progress bar (loading) */}
-        {(loading || ocrLoading) && <div className="apex-progress" />}
-
-        <Textarea
-          value={value}
-          onChange={(e) => {
-            const next = e.target.value;
-            setValue(next);
-            if (error) setError(null);
-            if (!next.trim() && result) {
-              setResult(null);
-              onResult?.(null);
-            }
-            if (metaResponse) setMetaResponse(null);
-          }}
-          onBlur={() => setTouched(true)}
-          placeholder={t("input_placeholder", lang)}
-          rows={4}
-          aria-invalid={!!validationMsg}
-          maxLength={MAX_INPUT_CHARS + 100}
-          className="resize-none border-0 bg-transparent shadow-none outline-none focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none px-7 pt-6 pb-4 text-base md:text-[16px] leading-relaxed text-[#18181B] placeholder:text-[#A1A1AA] min-h-[150px]"
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run();
-          }}
-        />
-
-        {/* Inline validation + char counter */}
-        <div className="flex items-center justify-between gap-3 px-7 pb-4 min-h-[20px]">
-          <span className="apex-mono text-[#B91C1C]" role="alert">
-            {validationMsg ? `! ${validationMsg}` : ""}
-          </span>
-          <span className={`apex-mono ${charCount > MAX_INPUT_CHARS ? "text-[#B91C1C]" : ""}`}>
+          <span className="field-counter">
             {charCount} / {MAX_INPUT_CHARS}
           </span>
         </div>
-
-        {ocrPreviewOpen && (
-          <div className="mt-1 mx-5 mb-3 rounded-[8px] border border-[#E2E0D8] bg-[#FCFAF9] overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#E2E0D8] bg-white">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-[3px] bg-[#F97316]/10">
-                  <AlertTriangle className="h-3 w-3 text-[#C2410C]" strokeWidth={2} />
-                </span>
-                <span className="apex-mono text-[#18181B]">
-                  {{ ru: "Текст с картинки", uz: "Rasmdagi matn", en: "Text from image" }[lang]}
-                </span>
-              </div>
-              <span className="apex-mono text-[#A1A1AA]">
-                {ocrText.trim().length} {{ ru: "символов", uz: "belgi", en: "chars" }[lang]}
-              </span>
-            </div>
-
-            {/* Body */}
-            <div className="px-4 pt-3 pb-4">
-              <p className="text-[13px] font-medium text-[#18181B] leading-snug">
-                {t("ocr_preview_title", lang)}
-              </p>
-              <p className="text-[12px] text-[#52525B] leading-relaxed mt-1">
-                {t("ocr_preview_hint", lang)}
-              </p>
-
-              <Textarea
-                value={ocrText}
-                onChange={(e) => setOcrText(e.target.value)}
-                rows={5}
-                aria-label={t("ocr_preview_title", lang)}
-                className="apex-field resize-y text-[13px] bg-white border-[#E2E0D8] rounded-[6px] mt-3 leading-relaxed font-mono"
-              />
-
-              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 mt-3">
-                <button
-                  type="button"
-                  onClick={clearImage}
-                  className="apex-pill justify-center sm:justify-start"
-                >
-                  <X className="h-3.5 w-3.5 text-[#52525B]" strokeWidth={2} />
-                  {t("ocr_cancel", lang)}
-                </button>
-                <button
-                  type="button"
-                  onClick={run}
-                  disabled={!ocrText.trim() || loading}
-                  className="fancy-btn sm:min-w-[200px]"
-                >
-                  <span className="fancy-points" aria-hidden="true">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <i key={i} className="fancy-point" />
-                    ))}
-                  </span>
-                  <span className="fancy-inner">
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
-                    {t("ocr_check_this", lang)}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {imageDataUrl && !ocrPreviewOpen && (
-          <div className="mt-1 mx-5 mb-2 flex items-center gap-3 rounded-[6px] border border-[#E2E0D8] bg-[#F4F2EB] p-2.5">
-            <img
-              src={imageDataUrl}
-              alt="screenshot"
-              className="h-14 w-14 rounded-[4px] object-cover"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm truncate text-[#18181B]">{imageName}</p>
-              {ocrLoading ? (
-                <p className="text-xs text-[#A1A1AA] flex items-center gap-1 mt-0.5">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  {t("ocr_recognizing", lang)}
-                </p>
-              ) : (
-                <p className="text-xs text-[#A1A1AA] flex items-start gap-1 mt-0.5">
-                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                  <span>{t("screenshot_warning", lang)}</span>
-                </p>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearImage}
-              className="shrink-0 rounded-[4px]"
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-6 py-4 border-t border-[#E2E0D8] bg-[#FCFAF9]/60">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={(e) => onPickFile(e.target.files?.[0])}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="apex-pill"
-              type="button"
-              disabled={ocrLoading}
-            >
-              <ImagePlus className="h-3.5 w-3.5 text-[#F97316]" strokeWidth={2} />
-              {t("attach_screenshot", lang)}
-            </button>
-            <button
-              onClick={() =>
-                navigate({ to: "/report", search: { v: value.trim().slice(0, 200) } as never })
-              }
-              className="apex-pill"
-              type="button"
-            >
-              <Send className="h-3.5 w-3.5 text-[#FB923C]" strokeWidth={2} />
-              {t("report_btn", lang)}
-            </button>
-          </div>
-          <button
-            onClick={run}
-            disabled={!canSubmit || ocrPreviewOpen}
-            className="fancy-btn min-w-[170px]"
-            type="button"
-          >
-            <span className="fancy-points" aria-hidden="true">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <i key={i} className="fancy-point" />
-              ))}
-            </span>
-            <span className="fancy-inner">
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : status === "success" ? (
-                <CheckCircle2 className="h-4 w-4" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-              {loading
-                ? t("checking", lang)
-                : status === "success"
-                  ? "Готово"
-                  : t("check_now", lang)}
-            </span>
-          </button>
-        </div>
       </div>
 
-      {error && (
-        <div className="mt-3 flex items-start gap-2 rounded-[6px] border border-[#DC2626]/30 bg-[#DC2626]/5 px-3 py-2.5">
-          <AlertTriangle className="h-3.5 w-3.5 text-[#B91C1C] mt-0.5 shrink-0" />
-          <p className="text-[12px] text-[#991B1B] apex-mono leading-relaxed">{error}</p>
-        </div>
-      )}
-      {metaResponse && (
-        <div className="mt-6 rounded-[6px] border border-[#E2E0D8] bg-white p-5 sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-[#FED7AA] bg-[#FFF7ED] text-[#C2410C]">
-              <Info className="h-4 w-4" strokeWidth={2} />
-            </span>
-            <p className="text-[14.5px] leading-[1.7] text-[#3F3F46] whitespace-pre-line">
-              {metaResponse}
-            </p>
+      <div className="signal-examples" role="group" aria-label={copy.examplesLabel}>
+        <span aria-hidden="true">{copy.examplesLabel}:</span>
+        {copy.examples.map((example) => (
+          <button type="button" key={example.label} onClick={() => replaceValue(example.sample)}>
+            {example.label}
+          </button>
+        ))}
+      </div>
+
+      {imageDataUrl && !ocrPreviewOpen && (
+        <div className="signal-ocr-preview">
+          <div>
+            <strong>{imageName || copy.screenshot}</strong>
+            <span>{t("screenshot_warning", lang)}</span>
+          </div>
+          <div className="checker-actions">
+            <button
+              type="button"
+              className="upload-button"
+              onClick={clearImage}
+              disabled={ocrLoading}
+            >
+              <X aria-hidden="true" />
+              {t("ocr_cancel", lang)}
+            </button>
+            <button
+              type="button"
+              className="check-button vp-submit"
+              onClick={() => void requestOcrWithConsent()}
+              disabled={ocrLoading}
+            >
+              <span className="vp-pill-dot" aria-hidden="true">
+                <SignalArrowRight weight="bold" />
+              </span>
+              {ocrLoading ? t("ocr_recognizing", lang) : t("ocr_consent_send", lang)}
+            </button>
           </div>
         </div>
       )}
-      {result && !hideInlineResult && (
-        <div className="mt-6">
-          <RiskResultCard result={result} />
+
+      {ocrPreviewOpen && (
+        <div className="signal-ocr-preview">
+          <div>
+            <strong>{imageName || copy.screenshot}</strong>
+            <span>{copy.ocrRecognized}</span>
+          </div>
+          <textarea
+            value={ocrText}
+            onChange={(event) => editOcrText(event.target.value)}
+            rows={3}
+            aria-label={copy.ocrText}
+          />
+          <button type="button" onClick={removeImage}>
+            {copy.removeShot}
+          </button>
         </div>
       )}
-    </div>
+
+      <button
+        className="check-button vp-submit"
+        type="button"
+        onClick={() => void run()}
+        // Stays clickable when empty: run() explains what to paste instead
+        // of showing a greyed-out button that looks broken.
+        disabled={loading || ocrLoading}
+      >
+        <span className="vp-pill-dot" aria-hidden="true">
+          <SignalArrowRight weight="bold" />
+        </span>
+        {loading ? copy.checking : copy.check}
+      </button>
+
+      <div
+        className={`result-panel ${
+          loading || ocrLoading
+            ? "result-loading"
+            : result
+              ? `result-result ${signalResultClass}`
+              : error
+                ? "result-error"
+                : "result-idle"
+        }`}
+        aria-live="polite"
+      >
+        {loading || ocrLoading ? (
+          <div className="loading-state">
+            <span className="loading-ring" />
+            <div>
+              <strong>{ocrLoading ? copy.loadingOcr : copy.loadingTitle}</strong>
+              <small>{copy.loadingSub}</small>
+            </div>
+          </div>
+        ) : result ? (
+          <>
+            <div className="result-summary">
+              <span className="risk-icon">
+                {visualLevel === "safe" ? (
+                  <SignalCheckCircle weight="fill" />
+                ) : (
+                  <WarningCircle weight="fill" />
+                )}
+              </span>
+              <div>
+                <span className="result-label">{copy.resultLabel}</span>
+                <strong>{levelLabel}</strong>
+              </div>
+              <span className="risk-score">{displayScore} / 100</span>
+            </div>
+            <div className="reason-list">
+              {resultReasons.map((reason) => (
+                <span key={reason}>{reason}</span>
+              ))}
+            </div>
+            <div className="safe-action">
+              <SignalCheckCircle weight="fill" />
+              <div>
+                <small>{copy.next}</small>
+                <strong>{nextAction}</strong>
+              </div>
+            </div>
+          </>
+        ) : error ? (
+          <div className="idle-state signal-error-state">
+            <WarningCircle weight="fill" />
+            {error}
+          </div>
+        ) : metaResponse ? (
+          <div className="idle-state">
+            <SignalSparkle />
+            {metaResponse}
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }

@@ -53,6 +53,10 @@ import {
 beforeEach(() => {
   hoisted.roleRow = { role: "admin" };
   hoisted.roleError = null;
+  vi.stubEnv("NODE_ENV", "test");
+  vi.stubEnv("RAILWAY_ENVIRONMENT_ID", "");
+  vi.stubEnv("RAILWAY_ENVIRONMENT_NAME", "");
+  vi.stubEnv("RAILWAY_DEPLOYMENT_ID", "");
   vi.stubEnv("REQUIRE_ADMIN_MFA_AAL2", "false");
 });
 
