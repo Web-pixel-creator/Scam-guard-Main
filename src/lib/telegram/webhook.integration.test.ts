@@ -1,3 +1,5 @@
+import { mixedIncidents, changedSpeakers } from "@/lib/risk/first-advice-regression.fixtures";
+
 // End-to-end integration tests for the Telegram webhook (Ishonch Guard bot) —
 // task 9.3. The unit under test is the public `handleTelegramWebhook(request)`
 // from `webhook.server.ts`, exercised through the REAL chain:
@@ -526,12 +528,12 @@ function textUpdate(opts: {
 }
 
 /** A minimal valid inline-mode update. It intentionally has no chat id. */
-function inlineQueryUpdate(opts: { userId: number; query: string; id?: string }): unknown {
+function inlineQueryUpdate(opts: { userId: number; query: string; id?: string; lang?: string }) {
   return {
     update_id: nextSyntheticUpdateId(),
     inline_query: {
       id: opts.id ?? `inline-${opts.userId}`,
-      from: { id: opts.userId, language_code: "ru" },
+      from: { id: opts.userId, language_code: opts.lang ?? "ru" },
       query: opts.query,
       offset: "",
     },
@@ -1033,6 +1035,221 @@ describe("webhook end-to-end — text update reaches the real check chain (R12.4
       scenario_data: expect.objectContaining({ lastCheck: expect.any(Object) }),
     });
     expect(h.timeline).toEqual(["session:claim", "send", "session:context", "send"]);
+  });
+
+  it.each([
+    [
+      "ru",
+      "В SMS от имени банка просят продиктовать код из SMS и перезвонить по номеру из сообщения.",
+      /код.{0,100}номер.{0,100}приложение/iu,
+    ],
+    [
+      "uz",
+      "Банкдан хабар келди: СМС кодини айтинг.",
+      /sms.{0,30}aytmang.{0,100}bank.{0,60}yordam/iu,
+    ],
+    [
+      "uz",
+      "Operator qo‘ng‘iroq qilib, telefonda buyruq terishimni so‘radi.",
+      /(?:buyruqni|kodni) termang.{0,110}operator/iu,
+    ],
+    [
+      "uz",
+      "Набирам Телеграмда ёзиб, зудлик билан пул юборишимни сўради.",
+      /pul yubormang.{0,85}saqlangan raqam/iu,
+    ],
+    [
+      "ru",
+      "Внук написал в Telegram и просит срочно перевести ему деньги.",
+      /не переводите деньги.{0,85}сохранённому номеру/iu,
+    ],
+  ] as const)("same first action for a new chat and inline: %s %s", async (lang, text, action) => {
+    const from = { id: 7810, language_code: lang };
+    await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: from.id, chatId: from.id, text, message: { from } })),
+    );
+    await handleTelegramWebhook(
+      webhookRequest({
+        update_id: nextSyntheticUpdateId(),
+        inline_query: { id: "advice", from, query: text, offset: "" },
+      }),
+    );
+    const card = h.inlineAnswerCalls[0]?.results[0] as {
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    for (const answer of [
+      h.sendCalls[0]?.text,
+      card.description,
+      card.input_message_content.message_text,
+    ]) {
+      expect.soft(answer?.slice(0, 210)).toMatch(action);
+      expect.soft(answer).not.toMatch(/пришлите|скрин|skrin|недостаточно данных|голос|ovozi/iu);
+    }
+  });
+
+  it.each([
+    [
+      "ru",
+      "Позвонили от оператора. Просят набрать на телефоне USSD-команду. Потом написали: «Я знаю твой адрес, приеду домой и убью тебя».",
+      /безопасн|102/iu,
+      /^Не набирайте/iu,
+    ],
+    [
+      "ru",
+      "Мне позвонил оператор и попросил набрать команду на телефоне. Я уже набрал её. Что делать?",
+      /оператор/iu,
+      /не набирайте команду/iu,
+    ],
+    [
+      "uz",
+      "Nabiram telefon qildi, keyin bank zudlik bilan pul so‘radi.",
+      /pul|bank/iu,
+      /yaqin|saqlangan raqam|do['’]st/iu,
+    ],
+  ] as const)(
+    "review regression: Direct and Inline triage %s %s",
+    async (lang, text, required, forbidden) => {
+      const uid = 7809;
+      const from = { id: uid, language_code: lang };
+      await handleTelegramWebhook(
+        webhookRequest(textUpdate({ userId: uid, chatId: uid, text, message: { from } })),
+      );
+      await handleTelegramWebhook(
+        webhookRequest({
+          update_id: nextSyntheticUpdateId(),
+          inline_query: {
+            id: "review",
+            from: { id: uid + 1, language_code: lang },
+            query: text,
+            offset: "",
+          },
+        }),
+      );
+      const card = h.inlineAnswerCalls[0]?.results[0] as {
+        description: string;
+        input_message_content: { message_text: string };
+      };
+      for (const reply of [
+        h.sendCalls[0]?.text,
+        card?.description,
+        card?.input_message_content.message_text,
+      ]) {
+        expect.soft(reply).toMatch(required);
+        expect.soft(reply).not.toMatch(forbidden);
+        if (text.includes("уже набрал"))
+          expect.soft(reply).toMatch(/провер|уточн|что измен|что сделала/iu);
+      }
+    },
+  );
+
+  it.each([
+    ["Банк пишет: скажите код из СМС.", /банк|код/iu],
+    [
+      "Позвонила внучка и попросила срочно перевести ей деньги.",
+      /сохран[её]нному номеру|знакомому|близкому/iu,
+    ],
+    ["Мне позвонил оператор и попросил набрать команду на телефоне.", /оператор/iu],
+  ] as const)(
+    "review regression: replace QR context after delivery of %s",
+    async (newTopic, expected) => {
+      const uid = 7808;
+      for (const text of [HIGH_RISK_TEXT, newTopic, "Что делать дальше?"]) {
+        h.sendCalls.length = 0;
+        await handleTelegramWebhook(webhookRequest(textUpdate({ userId: uid, chatId: uid, text })));
+        loadLatestSessionUpsert(uid);
+      }
+      const reply = h.sendCalls.map((x) => x.text).join(" ");
+      expect.soft(reply).not.toMatch(/QR|сканируйте/iu);
+      expect(reply).toMatch(expected);
+    },
+  );
+
+  it.each([
+    ...mixedIncidents.map(([lang, text, expected]) => ({ lang, text, expected, changed: false })),
+    ...changedSpeakers.map((text) => ({
+      lang: "uz",
+      text,
+      expected: [/pul|bank/iu],
+      changed: true,
+    })),
+  ])("second review: both Telegram surfaces – $text", async ({ lang, text, expected, changed }) => {
+    const from = { id: 7827, language_code: lang };
+    await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: from.id, chatId: from.id, text, message: { from } })),
+    );
+    const u = inlineQueryUpdate({ userId: from.id + 1, query: text, lang });
+    await handleTelegramWebhook(webhookRequest(u));
+    const card = h.inlineAnswerCalls[0]?.results[0] as {
+      description: string;
+      input_message_content: { message_text: string };
+    };
+    for (const copy of [
+      h.sendCalls[0]?.text,
+      card?.description,
+      card?.input_message_content.message_text,
+    ]) {
+      const visible = (copy ?? "").replaceAll("\\", "");
+      for (const action of expected) expect.soft(visible).toMatch(action);
+      if (changed) expect.soft(visible).not.toMatch(/yaqin|oilaviy kod|do['’]st/iu);
+    }
+  });
+
+  it.each([
+    [
+      "ru",
+      "Мне позвонил оператор и попросил набрать команду на телефоне.",
+      "Я уже набрал её, что делать?",
+      /проверить.{0,45}настройки/iu,
+    ],
+    [
+      "ru",
+      "Мне позвонил оператор и попросил набрать команду на телефоне.",
+      "Я её уже набрала.",
+      /проверить.{0,45}настройки/iu,
+    ],
+    [
+      "uz",
+      "Operator qo‘ng‘iroq qilib, telefonda buyruq terishimni so‘radi.",
+      "Men uni allaqachon terdim, endi nima qilay?",
+      /sozlamalari.{0,50}tekshir/iu,
+    ],
+  ] as const)(
+    "third review: completion in the next private message %s %s %s",
+    async (lang, first, next, expected) => {
+      const from = { id: 7857, language_code: lang };
+      for (const text of [first, next]) {
+        h.sendCalls.length = 0;
+        await handleTelegramWebhook(
+          webhookRequest(textUpdate({ userId: from.id, chatId: from.id, text, message: { from } })),
+        );
+        loadLatestSessionUpsert(from.id);
+      }
+      expect(h.sendCalls[0]?.text).toMatch(expected);
+      expect(h.sendCalls[0]?.text).not.toMatch(/QR|ссылку|havola/iu);
+    },
+  );
+
+  it("does not replace the previous topic when first-advice delivery fails", async () => {
+    const uid = 7823;
+    await handleTelegramWebhook(
+      webhookRequest(textUpdate({ userId: uid, chatId: uid, text: HIGH_RISK_TEXT })),
+    );
+    loadLatestSessionUpsert(uid);
+    h.upserts.length = 0;
+    h.sendFailure = { ok: false, certainty: "definitive", retryable: false };
+    await handleTelegramWebhook(
+      webhookRequest(
+        textUpdate({ userId: uid, chatId: uid, text: "Банк пишет: скажите код из СМС." }),
+      ),
+    );
+    expect(
+      h.upserts.filter(
+        (entry) =>
+          entry.table === "telegram_sessions" &&
+          JSON.stringify(entry.payload).includes("lastVictimIntent"),
+      ),
+    ).toHaveLength(0);
   });
 
   it("suppresses a stale check result without emitting a false storage warning", async () => {

@@ -49,6 +49,7 @@ import {
 import type { HandlerCtx, ImageRouteMediaKind } from "@/lib/telegram/router";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import { detectInputType, maskForDisplay, normalize } from "@/lib/risk/detect";
+import { firstAdvice } from "@/lib/telegram/first-advice";
 import { sanitizeSensitiveTextForSink, type SensitiveSecretClass } from "@/lib/risk/sensitive-text";
 import { saveSession, withSessionChatScope } from "@/lib/telegram/session.server";
 import {
@@ -660,6 +661,14 @@ async function sendVictimIntentGuidance(
   });
   if (!delivery?.ok) return;
 
+  await rememberVictimGuidance(ctx, match, preserveEmergencyContext);
+}
+
+async function rememberVictimGuidance(
+  ctx: HandlerCtx,
+  match: VictimIntentMatch,
+  preserveEmergencyContext = false,
+): Promise<void> {
   const nextContext = buildVictimFollowUpContext(match);
   const {
     guardian: _previousGuardian,
@@ -1425,6 +1434,30 @@ export async function handleCheck(
         ),
       });
     }
+    return;
+  }
+
+  const advice =
+    completedPanicId === null || completedPanicId === 6
+      ? firstAdvice(trimmed, lang, completedPanicId === 6)
+      : null;
+  if (advice?.kind === "physical") {
+    await sendVictimIntentGuidance(
+      ctx,
+      advice.topic === "violence_threat"
+        ? { kind: "violence_threat", askedContext: "transfer" }
+        : {
+            kind: "authority_physical_coercion",
+            scenario: "authority_physical_coercion",
+            askedContext: "call",
+          },
+      lang,
+    );
+    return;
+  }
+  if (advice?.kind === "short") {
+    const delivery = await sendMessage({ chatId: ctx.chatId, text: escapeMarkdownV2(advice.text) });
+    if (delivery?.ok) await rememberVictimGuidance(ctx, advice.context);
     return;
   }
 

@@ -13,6 +13,11 @@ import { resolveTelegramTextLanguage } from "@/lib/telegram/inline-query-languag
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 import { isAccidentalOutgoingTransferIntent } from "@/lib/telegram/text-panic-intent";
 import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
+import {
+  INCIDENT_ACTION,
+  reportsCompletedCarrierDial,
+  uzRequestFromOtherSpeaker,
+} from "@/lib/risk/incident-first-action";
 
 export const ALL_VICTIM_INTENTS = [
   "emotional_help",
@@ -81,6 +86,7 @@ export const ALL_VICTIM_SCENARIOS = [
   "apk_already_installed",
   "authority_physical_coercion",
   "bank_contact_from_message",
+  "carrier_dial_request",
   "fake_boss_request",
   "charity_pressure",
   "fake_support",
@@ -127,6 +133,7 @@ export interface VictimFollowUpContext extends VictimIntentMatch {
 }
 
 export type VictimGuidanceFollowUpAction =
+  | "carrier_dialed"
   | "why"
   | "next_steps"
   | "trusted_person"
@@ -755,7 +762,7 @@ function classifyNewsVictimIntent(text: string): VictimIntentMatch | null {
   }
 
   if (
-    /(?:незнаком|посторон|человек|кто.?то).{0,120}(?:просит|попросил|хочет|дал).{0,90}(?:телефон|смартфон).{0,90}(?:позвон|минут|звонок)|(?:на\s+улиц[еуы]|улиц[аеуы]|посторон|незнаком).{0,100}(?:просят|просит|попросил|хочет).{0,90}(?:телефон|смартфон).{0,90}(?:позвон|минут|звонок)|(?:просят|просит|попросил|хочет).{0,60}(?:телефон|смартфон).{0,70}(?:на\s+минут|позвонить|позвон|звонок)|(?:телефон|смартфон).{0,100}(?:на\s+минут|позвонить).{0,100}(?:просит|просят|незнаком|посторон)/iu.test(
+    /(?:незнаком|посторон|человек|кто.?то).{0,120}(?:просит|попросил|хочет|дал).{0,90}(?:телефон|смартфон)(?!\p{L}).{0,90}(?:позвон|минут|звонок)|(?:на\s+улиц[еуы]|улиц[аеуы]|посторон|незнаком).{0,100}(?:просят|просит|попросил|хочет).{0,90}(?:телефон|смартфон)(?!\p{L}).{0,90}(?:позвон|минут|звонок)|(?:просят|просит|попросил|хочет).{0,60}(?:телефон|смартфон)(?!\p{L}).{0,70}(?:на\s+минут|позвонить|позвон|звонок)|(?:телефон|смартфон)(?!\p{L}).{0,100}(?:на\s+минут|позвонить).{0,100}(?:просит|просят|незнаком|посторон)/iu.test(
       text,
     )
   ) {
@@ -801,6 +808,10 @@ export function classifyVictimIntent(text: string): VictimIntentMatch | null {
   const normalized = stripScenarioLeadIns(normalizeVictimText(text));
   if (!normalized) return null;
   const combined = classifyVictimIntentWithTranslit(normalized);
+  // A later, explicitly named speaker is not the relative who made the call.
+  if (combined?.kind === "friend_money" && uzRequestFromOtherSpeaker(text)) {
+    return { kind: "transfer_request", askedContext: "transfer" };
+  }
 
   // In a multiline request, Telegram users commonly put the actual scenario
   // on one line and add only a trust/next-step question, pressure detail, URL
@@ -1142,6 +1153,13 @@ export function classifyVictimGuidanceFollowUp(
               : SHORT_CONTEXT_PRESSURE_RE.test(normalized)
                 ? "pressure"
                 : null;
+  if (
+    !action &&
+    active.kind === "operator_call" &&
+    active.scenario === "carrier_dial_request" &&
+    reportsCompletedCarrierDial(text)
+  )
+    action = "carrier_dialed";
   if (!action && BOUNDED_RU_LATIN_CONTEXT_FOLLOW_UP_RE.test(normalized)) {
     action = /^p[oa]chemu/iu.test(normalized)
       ? "why"
@@ -1274,6 +1292,16 @@ function buildContextualWhyText(context: VictimIntentMatch, lang: Lang): string 
 }
 
 function buildContextualNextStepsText(context: VictimIntentMatch, lang: Lang): string {
+  if (
+    context.kind === "operator_call" &&
+    (!context.scenario || context.scenario === "carrier_dial_request")
+  ) {
+    return {
+      ru: "Откройте приложение своего оператора и напишите в поддержку. Если вы уже набирали команду, попросите проверить, изменились ли услуги или настройки номера.",
+      uz: "Operatoringiz ilovasini ochib, yordam xizmatiga yozing. Buyruqni tergan bo‘lsangiz, raqamingiz xizmatlari yoki sozlamalari o‘zgarganini tekshirtiring.",
+      en: "Open your carrier’s app and contact support. If you dialed a code, ask them to check whether any services or settings changed.",
+    }[lang];
+  }
   if (context.askedContext === "code") {
     return {
       ru: "Код не сообщайте и ничего им не подтверждайте. Завершите контакт, сами откройте официальное приложение или позвоните по официальному номеру. Если код уже передан, сразу завершите неизвестные сеансы или свяжитесь с банком — в зависимости от того, для чего пришёл код.",
@@ -1336,6 +1364,8 @@ export function buildVictimGuidanceFollowUpText(
   if (followUp.action === "reply_script") {
     return buildContextualReplyScript(followUp.context, lang);
   }
+  if (followUp.action === "carrier_dialed")
+    return INCIDENT_ACTION.carrier_command_already_dialed[lang];
 
   if (followUp.action === "verify_official") {
     return {

@@ -19,10 +19,12 @@ import {
   type RiskPassportSummary,
 } from "@/lib/risk/risk-passport";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
+import type { BankSmsKind } from "@/lib/risk/reported-bank-sms";
 import { Callout, Pill, PillButton } from "@/components/viper/kit";
 import { displayRiskScore } from "@/lib/risk/display-score";
 
 export type CheckResult = {
+  reportedBankSms?: BankSmsKind | null; // UI-only hint from the submitted revision; no raw text.
   type: string;
   display: string;
   level: RiskLevel;
@@ -82,7 +84,9 @@ export function RiskResultCard({ result }: { result: CheckResult }) {
   const { lang } = useLang();
   const s = LEVEL_STYLES[result.level];
   const Icon = s.icon;
-  const contextualAdvice = filterAdvice(result.level, result.reasons, lang);
+  const contextualAdvice = filterAdvice(result.level, result.reasons, lang, {
+    reportedBankSms: result.reportedBankSms,
+  });
   const fallbackAdvice = ADVICE[result.level][lang].slice(
     0,
     result.level === "safe" || result.level === "unknown" ? 2 : 3,

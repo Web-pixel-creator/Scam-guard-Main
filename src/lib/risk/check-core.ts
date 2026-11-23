@@ -435,6 +435,8 @@ export async function runCheck(params: RunCheckParams): Promise<RunCheckResult> 
   );
   const shouldSkipAi =
     skipAi ||
+    reasonList.includes("carrier_command_already_dialed") ||
+    reasonList.includes("operator_requests_dial_code") ||
     ((detected === "url" || detected === "telegram" || detected === "phone") &&
       scoredLevel === "unknown" &&
       !hasSignificantReasons);

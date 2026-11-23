@@ -19,5 +19,12 @@ export const Route = createFileRoute("/embed_/check")({
 function EmbedCheckRoute() {
   const { lang, partner } = Route.useSearch();
   const visitor = useLang().lang;
-  return <EmbedCheckWidget lang={lang ?? visitor} partner={partner} />;
+  const effectiveLang = lang ?? visitor;
+  return (
+    <EmbedCheckWidget
+      key={JSON.stringify([effectiveLang, partner])}
+      lang={effectiveLang}
+      partner={partner}
+    />
+  );
 }

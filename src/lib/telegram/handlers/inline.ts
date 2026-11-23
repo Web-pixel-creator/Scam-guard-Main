@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Lang } from "@/lib/i18n";
+import { firstAdvice } from "@/lib/telegram/first-advice";
 import { classifyMetaIntent, getMetaIntentResponse, type MetaIntent } from "@/lib/meta-intent";
 import { maskForDisplay, redactText } from "@/lib/risk/detect";
 import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/risk-passport";
@@ -487,7 +488,7 @@ const PREVIEW_COPY: Record<
       code_request: {
         title: "Код: никому не называйте",
         description:
-          "Не сообщайте SMS-код или PIN. Push-коды, OTP и пароли тоже не диктуйте; добавьте только текст просьбы или скрин.",
+          "Не сообщайте SMS-код или PIN. Для проверки опишите просьбу своими словами, без кодов и паролей.",
       },
       recovery_phrase_request: {
         title: "Сид-фраза: никому не отправляйте",
@@ -862,7 +863,7 @@ const PREVIEW_COPY: Record<
       code_request: {
         title: "Kod: hech kimga aytmang",
         description:
-          "SMS-kod yoki PIN-ni aytmang. Push-kod, OTP va parolni ham aytmang; faqat so'rov matni yoki skrinni qo'shing.",
+          "SMS-kod yoki PIN-ni aytmang. Nima so‘rashganini yozing, kod yoki parolni yubormang.",
       },
       recovery_phrase_request: {
         title: "Tiklash iborasi: hech kimga yubormang",
@@ -1235,7 +1236,7 @@ const PREVIEW_COPY: Record<
       code_request: {
         title: "Code: do not share it with anyone",
         description:
-          "Do not share your SMS code or PIN. Do not read out push codes, OTPs or passwords; add only the request text or screenshot.",
+          "Do not share your SMS code or PIN. Describe what they asked for without including codes or passwords.",
       },
       recovery_phrase_request: {
         title: "Recovery phrase: never share it",
@@ -2086,9 +2087,15 @@ function formatInlineMessage(result: RunCheckResult, lang: Lang): string {
   const copy = COPY[lang];
   const level = copy.levels[result.level];
   if (result.level === "high_risk" || result.level === "suspicious") {
+    const advice = inlineSafeAction(result, lang, copy);
+    // Put one complete instruction above the fold and retain any aftercare
+    // in the shared message. Do not cut a multi-sentence action mid-word.
+    const lead = advice.length > MAX_INLINE_DESCRIPTION_LENGTH ? firstSentence(advice) : advice;
+    const aftercare = advice.slice(lead.length).trim();
     return [
       level.title,
-      `${copy.stepLabel}: ${inlineSafeAction(result, lang, copy)}`,
+      `${copy.stepLabel}: ${lead}`,
+      ...(aftercare ? [aftercare] : []),
       "",
       copy.checkedBy,
       "",
@@ -4309,6 +4316,25 @@ export async function handleInlineQuery(
 
   if (isAmbiguousShortNumericQuery(trimmed)) {
     await answer(ambiguousNumericArticle(lang));
+    return;
+  }
+
+  const advice =
+    completedPanicId === null || completedPanicId === 6
+      ? firstAdvice(trimmed, lang, completedPanicId === 6)
+      : null;
+  if (advice?.kind === "physical") {
+    await answer(
+      humanIntentArticle(
+        trimmed,
+        lang,
+        advice.topic === "violence_threat" ? "violence_threat" : "dangerous_task",
+      ),
+    );
+    return;
+  }
+  if (advice?.kind === "short") {
+    await answer(buildArticle(advice.id, advice.title, advice.text, advice.text, lang));
     return;
   }
 

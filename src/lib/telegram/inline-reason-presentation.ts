@@ -34,6 +34,21 @@ export interface InlineReasonPolicy {
  * order.
  */
 export const INLINE_REASON_POLICY: Record<ReasonCode, InlineReasonPolicy> = {
+  reported_unauthorized_debit: {
+    priority: 9,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
+  carrier_command_already_dialed: {
+    priority: 12,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
+  operator_requests_dial_code: {
+    priority: 13,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
   asks_for_otp: { priority: 10, evidence: "text_pattern", limitation: "signal_not_proof" },
   asks_for_sms_code: { priority: 10, evidence: "text_pattern", limitation: "signal_not_proof" },
   asks_for_card_cvv: { priority: 10, evidence: "text_pattern", limitation: "signal_not_proof" },

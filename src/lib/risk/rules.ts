@@ -1,4 +1,13 @@
 import type { InputType } from "./detect";
+import { matchBankSmsScript } from "./reported-bank-sms";
+import {
+  INCIDENT_LABEL,
+  matchIncidentScript,
+  normalizeIncidentText,
+  reportsUnauthorizedDebit,
+  uzFamilyDemandEvidence,
+  type IncidentReason,
+} from "./incident-first-action";
 import { uzbekLatinMatchingVariant } from "./uz-cyrillic-translit";
 import type { Database } from "@/integrations/supabase/types";
 import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-normalization";
@@ -6,6 +15,7 @@ import { normalizeIntentTextForMatching } from "@/lib/telegram/intent-text-norma
 export type RiskLevel = Database["public"]["Enums"]["risk_level"];
 
 export type ReasonCode =
+  | IncidentReason
   | "asks_for_otp"
   | "asks_for_sms_code"
   | "asks_for_card_cvv"
@@ -35,7 +45,6 @@ export type ReasonCode =
   | "verified_official"
   | "known_reported"
   | "asks_to_scan_qr"
-  | "relative_in_distress"
   | "requests_card_digits"
   | "threatens_account_block"
   | "fake_delivery_payment"
@@ -70,6 +79,9 @@ export type ReasonCode =
   | "threatens_physical_violence";
 
 const WEIGHTS: Record<ReasonCode, number> = {
+  reported_unauthorized_debit: 40,
+  carrier_command_already_dialed: 30,
+  operator_requests_dial_code: 30,
   asks_for_otp: 45,
   asks_for_sms_code: 45,
   asks_for_card_cvv: 45,
@@ -144,6 +156,9 @@ export type ReasonTrustImpact = "informational" | "protective" | "risk";
  * here at compile time; the safe downgrade fails closed for every `risk` code.
  */
 export const REASON_TRUST_IMPACT: Record<ReasonCode, ReasonTrustImpact> = {
+  reported_unauthorized_debit: "risk",
+  carrier_command_already_dialed: "risk",
+  operator_requests_dial_code: "risk",
   asks_for_otp: "risk",
   asks_for_sms_code: "risk",
   asks_for_card_cvv: "risk",
@@ -1848,18 +1863,36 @@ const USER_NEXT_STEP_QUESTION_RE =
 
 export function evaluateText(text: string): ReasonCode[] {
   const normalized = normalizeIntentTextForMatching(text);
-  const codes = evaluateTextScript(normalized);
+  const clauses = /[\r\n]/u.test(text) ? normalizeIncidentText(text) : normalized;
+  const codes = evaluateTextScript(normalized, clauses);
   // Uzbek Cyrillic input must reach the same Uzbek Latin rule patterns
   // («Хавфсиз ҳисобга…» → `xavfsiz hisob`). The variant is additive and
   // classifier-only; each pass keeps its own negation/safety guards because
   // transliteration preserves protective wording (aytmang stays aytmang).
   const variant = uzbekLatinMatchingVariant(normalized);
   if (!variant) return codes;
-  return [...new Set([...codes, ...evaluateTextScript(variant)])];
+  return [
+    ...new Set([
+      ...codes,
+      ...evaluateTextScript(
+        variant,
+        clauses === normalized ? variant : (uzbekLatinMatchingVariant(clauses) ?? clauses),
+      ),
+    ]),
+  ];
 }
 
-function evaluateTextScript(text: string): ReasonCode[] {
+function evaluateTextScript(text: string, clauses: string): ReasonCode[] {
   const codes = new Set<ReasonCode>();
+  const incident = matchIncidentScript(clauses);
+  if (reportsUnauthorizedDebit(clauses)) codes.add("reported_unauthorized_debit");
+  if (matchBankSmsScript(text)) codes.add("asks_for_sms_code");
+  if (incident) codes.add(incident);
+  if (incident === "relative_in_distress") {
+    const demand = uzFamilyDemandEvidence(clauses);
+    if (demand) codes.add("uses_urgency");
+    if (demand === "transfer") codes.add("asks_for_money_transfer");
+  }
   const isStandaloneCodeSafetyWarning =
     GENERIC_CODE_SAFETY_RE.test(text) &&
     !hasUnsafeClause(text, GENERIC_CODE_REQUEST_RE, GENERIC_CODE_SAFETY_RE);
@@ -2132,6 +2165,7 @@ export function scoreFromCodes(codes: ReasonCode[]): { score: number; level: Ris
 }
 
 export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: string }> = {
+  ...INCIDENT_LABEL,
   asks_for_otp: { ru: "Просят OTP-код", uz: "OTP kodini so‘rashmoqda", en: "Asks for an OTP code" },
   asks_for_sms_code: {
     ru: "Просят SMS-код подтверждения",
@@ -2260,11 +2294,6 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Просят отсканировать QR-код",
     uz: "QR-kodni skanerlashni so‘rashmoqda",
     en: "Asks you to scan a QR code",
-  },
-  relative_in_distress: {
-    ru: "«Родственник/друг в беде» — срочный перевод",
-    uz: "«Qarindosh/do‘st xavf ostida» — shoshilinch pul",
-    en: "“Relative/friend in distress” money request",
   },
   requests_card_digits: {
     ru: "Просят назвать цифры карты",

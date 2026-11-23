@@ -405,6 +405,8 @@ const META_RISK_OVERRIDE_REASONS = new Set<ReasonCode>([
   "telegram_account_takeover_phishing",
   "dropper_recruitment",
   "authority_coerced_dangerous_act",
+  "carrier_command_already_dialed",
+  "operator_requests_dial_code",
   "fake_penalty_points_erasure",
   "threatens_physical_violence",
 ]);

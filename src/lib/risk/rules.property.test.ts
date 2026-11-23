@@ -52,6 +52,9 @@ const RESEARCH_FEED_CODES = [
   "money_mule_recruitment",
   "advance_fee_prize_inheritance",
   "authority_coerced_dangerous_act",
+  "carrier_command_already_dialed",
+  "reported_unauthorized_debit",
+  "operator_requests_dial_code",
   "fake_penalty_points_erasure",
   "threatens_physical_violence",
 ] as const satisfies readonly ReasonCode[];
@@ -157,9 +160,9 @@ describe("risk rules — property-based scoring invariants", () => {
   it("fixtures cover the full reason-code universe without overlap", () => {
     expect(OLD_CODES.length).toBe(26);
     expect(NEW_CODES.length).toBe(4);
-    expect(RESEARCH_FEED_CODES.length).toBe(25);
+    expect(RESEARCH_FEED_CODES.length).toBe(28);
     expect(ADDITIONAL_CODES.length).toBe(7);
-    expect(new Set(ALL_CODES).size).toBe(62);
+    expect(new Set(ALL_CODES).size).toBe(65);
     expect(
       new Set([...OLD_CODES, ...NEW_CODES, ...RESEARCH_FEED_CODES, ...ADDITIONAL_CODES]),
     ).toEqual(new Set(ALL_CODES));
@@ -208,7 +211,9 @@ describe("risk rules — property-based scoring invariants", () => {
   it("every risk-classified reason overrides verified-contact protection", () => {
     const riskCodes = ALL_CODES.filter((code) => REASON_TRUST_IMPACT[code] === "risk");
 
-    expect(riskCodes.length).toBe(59);
+    expect(riskCodes).toContain("operator_requests_dial_code");
+    expect(riskCodes).toContain("reported_unauthorized_debit");
+    expect(riskCodes.length).toBe(62);
     for (const code of riskCodes) {
       expect(canVerifiedContactMarkSafe([code])).toBe(false);
       expect(scoreFromCodes(["verified_official", code]).level).not.toBe("safe");

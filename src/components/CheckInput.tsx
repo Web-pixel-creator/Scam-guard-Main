@@ -19,6 +19,8 @@ import {
 } from "@/lib/check.functions";
 import type { CheckResult } from "./RiskResultCard";
 import { ADVICE, REASON_LABELS } from "@/lib/risk/rules";
+import { filterAdvice } from "@/lib/telegram/advice-filter";
+import { reportedBankSms } from "@/lib/risk/reported-bank-sms";
 import { displayRiskScore } from "@/lib/risk/display-score";
 import { createWebOcrLifecycle, type WebOcrSelection } from "@/lib/web-ocr-lifecycle";
 import { digestWebOcrImage } from "@/lib/web-ocr-image-digest";
@@ -202,6 +204,7 @@ export function CheckInput({
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [checkRevision] = useState(() => ({ value: 0 }));
   const [ocrLifecycle] = useState(() => createWebOcrLifecycle());
   const activeReadRef = useRef<{
     selection: WebOcrSelection;
@@ -215,17 +218,28 @@ export function CheckInput({
     // StrictMode may set up again after cleanup on the same component instance.
     ocrLifecycle.activate();
     return () => {
+      checkRevision.value++;
       ocrLifecycle.dispose();
       const pending = activeReadRef.current;
       activeReadRef.current = null;
       pending?.read.abort();
     };
-  }, [ocrLifecycle]);
+  }, [checkRevision, ocrLifecycle]);
 
   function abortActiveRead() {
     const pending = activeReadRef.current;
     activeReadRef.current = null;
     pending?.read.abort();
+  }
+
+  // A verdict belongs to the submitted draft, never to its replacement.
+  function invalidateCheck() {
+    checkRevision.value++;
+    setLoading(false);
+    setResult(null);
+    setMetaResponse(null);
+    setError(null);
+    onResult?.(null);
   }
 
   const validationMsg = useMemo(
@@ -236,6 +250,7 @@ export function CheckInput({
   async function onPickFile(file: File | undefined) {
     // Cancelling the native chooser is not a new selection or new consent.
     if (!file) return;
+    invalidateCheck();
     const selection = ocrLifecycle.startSelection();
     if (!selection) return;
     // Invalidate first: abort may synchronously settle an older FileReader.
@@ -335,10 +350,12 @@ export function CheckInput({
       return;
     }
     if (loading) return;
+    const submittedRevision = checkRevision.value;
     setLoading(true);
     setError(null);
     setResult(null);
     setMetaResponse(null);
+    onResult?.(null);
     const checkedImageSelection = ocrPreviewOpen ? imageSelection : null;
     try {
       const input = ocrPreviewOpen
@@ -350,6 +367,7 @@ export function CheckInput({
       if (checkedImageSelection && !ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
         return;
       }
+      if (submittedRevision !== checkRevision.value) return;
       if (isMetaIntentResult(r)) {
         setMetaResponse(r.response);
         onResult?.(null);
@@ -358,8 +376,12 @@ export function CheckInput({
         }
         return;
       }
-      setResult(r as CheckResult);
-      onResult?.(r as CheckResult);
+      const current: CheckResult = {
+        ...(r as CheckResult),
+        reportedBankSms: reportedBankSms(input),
+      };
+      setResult(current);
+      onResult?.(current);
       if (checkedImageSelection && ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
         clearImage();
       }
@@ -367,10 +389,11 @@ export function CheckInput({
       if (checkedImageSelection && !ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
         return;
       }
+      if (submittedRevision !== checkRevision.value) return;
       console.error("check failed", safeClientErrorReason(e));
       setError(safeCheckErrorMessage(e, lang));
     } finally {
-      setLoading(false);
+      if (submittedRevision === checkRevision.value) setLoading(false);
     }
   }
 
@@ -396,14 +419,23 @@ export function CheckInput({
     ? result.reasons.slice(0, 2).map((reason) => REASON_LABELS[reason][lang])
     : [];
   const resultReasons = mappedReasons.length > 0 ? mappedReasons : [copy.noReasons];
-  const nextAction = result ? ADVICE[result.level][lang][0] : "";
+  const nextAction = result
+    ? (filterAdvice(result.level, result.reasons, lang, {
+        reportedBankSms: result.reportedBankSms,
+      })[0] ?? ADVICE[result.level][lang][0])
+    : "";
   const displayScore = result ? displayRiskScore(result.score) : 0;
   const replaceValue = (next: string) => {
+    invalidateCheck();
     setValue(next);
-    setError(null);
-    setResult(null);
-    setMetaResponse(null);
-    onResult?.(null);
+  };
+  const editOcrText = (next: string) => {
+    invalidateCheck();
+    setOcrText(next);
+  };
+  const removeImage = () => {
+    invalidateCheck();
+    clearImage();
   };
 
   return (
@@ -495,11 +527,11 @@ export function CheckInput({
           </div>
           <textarea
             value={ocrText}
-            onChange={(event) => setOcrText(event.target.value)}
+            onChange={(event) => editOcrText(event.target.value)}
             rows={3}
             aria-label={copy.ocrText}
           />
-          <button type="button" onClick={clearImage}>
+          <button type="button" onClick={removeImage}>
             {copy.removeShot}
           </button>
         </div>

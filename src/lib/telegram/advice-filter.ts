@@ -7,6 +7,8 @@
  */
 
 import type { Lang } from "@/lib/i18n";
+import { bankSmsAdvice, type BankSmsKind } from "@/lib/risk/reported-bank-sms";
+import { INCIDENT_ACTION, type IncidentReason } from "@/lib/risk/incident-first-action";
 import type { RiskLevel, ReasonCode } from "@/lib/risk/rules";
 
 // ── Advice category definitions ─────────────────────────────────────────────
@@ -18,6 +20,7 @@ interface AdviceEntry {
 }
 
 export type ProtectiveActionId =
+  | IncidentReason
   | "protect_secrets"
   | "protect_card_details"
   | "avoid_link_or_apk"
@@ -49,6 +52,7 @@ export type ProtectiveActionId =
  * until its user action is selected explicitly.
  */
 export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | null> = {
+  reported_unauthorized_debit: "reported_unauthorized_debit",
   asks_for_otp: "protect_secrets",
   asks_for_sms_code: "protect_secrets",
   asks_for_card_cvv: "protect_card_details",
@@ -78,7 +82,9 @@ export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | n
   verified_official: null,
   known_reported: "stop_reported_contact",
   asks_to_scan_qr: "avoid_qr",
-  relative_in_distress: "avoid_transfer",
+  relative_in_distress: "relative_in_distress",
+  carrier_command_already_dialed: "carrier_command_already_dialed",
+  operator_requests_dial_code: "operator_requests_dial_code",
   requests_card_digits: "protect_card_details",
   threatens_account_block: "end_pressure_call",
   fake_delivery_payment: "verify_delivery_payment",
@@ -119,6 +125,10 @@ interface AdviceCategory {
 }
 
 const REASON_ADVICE_MAP: AdviceCategory[] = [
+  { id: "reported_unauthorized_debit", advice: INCIDENT_ACTION.reported_unauthorized_debit },
+  { id: "relative_in_distress", advice: INCIDENT_ACTION.relative_in_distress },
+  { id: "carrier_command_already_dialed", advice: INCIDENT_ACTION.carrier_command_already_dialed },
+  { id: "operator_requests_dial_code", advice: INCIDENT_ACTION.operator_requests_dial_code },
   // OTP/code reasons → don't share codes
   {
     id: "protect_secrets",
@@ -332,6 +342,9 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
 const ADVICE_PRIORITY = [
   "seek_physical_safety",
   "avoid_dangerous_act",
+  "reported_unauthorized_debit",
+  "carrier_command_already_dialed",
+  "operator_requests_dial_code",
   "stop_reported_contact",
   "protect_secrets",
   "avoid_withdrawal_payment",
@@ -349,6 +362,7 @@ const ADVICE_PRIORITY = [
   "protect_card_details",
   "protect_personal_data",
   "avoid_link_or_apk",
+  "relative_in_distress",
   "avoid_requested_transfer",
   "avoid_transfer",
   "verify_official_channel",
@@ -380,7 +394,12 @@ const TOPIC_ONLY_REASONS: Set<string> = new Set([
  * - unknown + only topic-only codes → single context message
  * - otherwise: maps reasons to advice categories, deduplicates, limits to 3
  */
-export function filterAdvice(level: RiskLevel, reasons: string[], lang: Lang): string[] {
+export function filterAdvice(
+  level: RiskLevel,
+  reasons: string[],
+  lang: Lang,
+  context?: { reportedBankSms?: BankSmsKind | null },
+): string[] {
   // Safe with no reasons → nothing to advise
   if (level === "safe" && reasons.length === 0) {
     return [];
@@ -402,18 +421,63 @@ export function filterAdvice(level: RiskLevel, reasons: string[], lang: Lang): s
   // Resolve the exhaustive typed policy, then preserve action priority.
   const matched = new Set<ProtectiveActionId>();
 
+  const familyCallback = reasons.includes("relative_in_distress");
   for (const reason of reasons) {
+    // The family action already says to pause the transfer and call back.
+    // Keep distinct evidence (e.g. an SMS-code request) and its protection.
+    if (familyCallback && (reason === "uses_urgency" || reason === "asks_for_money_transfer"))
+      continue;
     const action = REASON_PROTECTIVE_ACTION[reason as ReasonCode];
     if (action) matched.add(action);
   }
 
   // Collect advice strings in category order (deduplication is inherent)
   const result: string[] = [];
+  const dial = matched.has("carrier_command_already_dialed")
+    ? "carrier_command_already_dialed"
+    : matched.has("operator_requests_dial_code")
+      ? "operator_requests_dial_code"
+      : null;
+  const dialAndCode = carrierAndCodeText(dial, reasons, lang);
   for (const action of ADVICE_PRIORITY) {
     if (!matched.has(action)) continue;
-    result.push(ADVICE_BY_ACTION[action][lang]);
+    if (dialAndCode && action === "protect_secrets") continue;
+    result.push(
+      dialAndCode && action === dial
+        ? dialAndCode
+        : context?.reportedBankSms &&
+            action === "protect_secrets" &&
+            !reasons.includes("impersonates_operator") &&
+            (level === "suspicious" || level === "high_risk")
+          ? bankSmsAdvice(context.reportedBankSms, lang)
+          : ADVICE_BY_ACTION[action][lang],
+    );
     if (result.length >= 3) break;
   }
 
   return result;
+}
+
+// The two critical actions must fit even in a compact inline preview.
+export function carrierAndCodeText(
+  action: IncidentReason | null,
+  reasons: readonly string[],
+  lang: Lang,
+): string | null {
+  if (
+    (action !== "operator_requests_dial_code" && action !== "carrier_command_already_dialed") ||
+    !(reasons.includes("asks_for_sms_code") || reasons.includes("asks_for_otp"))
+  )
+    return null;
+  if (action === "operator_requests_dial_code")
+    return {
+      ru: "Не набирайте команду. Не сообщайте SMS-код. Положите трубку и откройте приложение своего оператора.",
+      uz: "Kodni termang. SMS kodini hech kimga aytmang. Suhbatni tugating va operatoringiz ilovasini oching.",
+      en: "Do not dial the code or share the SMS code. Hang up and open your carrier’s own app.",
+    }[lang];
+  return {
+    ru: "Не сообщайте SMS-код. В приложении своего оператора попросите поддержку проверить услуги и настройки номера.",
+    uz: "SMS kodini hech kimga aytmang. Operator ilovasida yordam xizmatidan raqam xizmatlari va sozlamalarini tekshirishni so‘rang.",
+    en: "Do not share the SMS code. Open your carrier’s app and ask support to check the services and settings on your number.",
+  }[lang];
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useReducer, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   CheckCircle,
@@ -23,6 +23,8 @@ import {
 } from "@/lib/risk/risk-passport";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
 import type { CheckResult } from "@/components/RiskResultCard";
+import { emptyEmbedDraft, embedCheckReducer } from "@/lib/embed-check-state";
+import { reportedBankSms, type BankSmsKind } from "@/lib/risk/reported-bank-sms";
 
 const MAX_INPUT_CHARS = 1000;
 const MIN_INPUT_CHARS = 3;
@@ -119,12 +121,15 @@ function truncate(value: string, max = 320): string {
 
 export function EmbedCheckWidget({ lang, partner }: EmbedCheckWidgetProps) {
   const checkFn = useServerFn(checkInput);
-  const [value, setValue] = useState("");
+  const [{ text: value, revision, outcome }, dispatch] = useReducer(
+    embedCheckReducer,
+    emptyEmbedDraft,
+  );
   const [touched, setTouched] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<CheckResult | null>(null);
-  const [metaResponse, setMetaResponse] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const loading = outcome.kind === "loading";
+  const result = outcome.kind === "risk" ? outcome.result : null;
+  const metaResponse = outcome.kind === "meta" ? outcome.message : null;
+  const error = outcome.kind === "error" ? outcome.message : null;
 
   const validation = useMemo(
     () => (touched ? validationMessage(value, lang) : null),
@@ -133,33 +138,39 @@ export function EmbedCheckWidget({ lang, partner }: EmbedCheckWidgetProps) {
 
   async function runCheck() {
     setTouched(true);
-    const message = validationMessage(value, lang);
-    if (message) {
-      setError(message);
-      return;
-    }
-    if (loading) return;
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setMetaResponse(null);
+    if (validationMessage(value, lang) || loading) return;
+    const input = value.trim().slice(0, MAX_INPUT_CHARS);
+    dispatch({ type: "start", revision });
     try {
       const response = await checkFn({
         data: {
-          input: value.trim().slice(0, MAX_INPUT_CHARS),
+          input,
           lang,
           embed: collectEmbedTelemetryContext(partner),
         },
       });
       if (isMetaIntentResult(response)) {
-        setMetaResponse(response.response);
+        dispatch({
+          type: "finish",
+          revision,
+          outcome: { kind: "meta", message: response.response },
+        });
       } else {
-        setResult(response as CheckResult);
+        dispatch({
+          type: "finish",
+          revision,
+          outcome: {
+            kind: "risk",
+            result: { ...(response as CheckResult), reportedBankSms: reportedBankSms(input) },
+          },
+        });
       }
     } catch (e: unknown) {
-      setError(safeCheckErrorMessage(e, lang));
-    } finally {
-      setLoading(false);
+      dispatch({
+        type: "finish",
+        revision,
+        outcome: { kind: "error", message: safeCheckErrorMessage(e, lang) },
+      });
     }
   }
 
@@ -226,12 +237,7 @@ export function EmbedCheckWidget({ lang, partner }: EmbedCheckWidgetProps) {
               value={value}
               maxLength={MAX_INPUT_CHARS}
               onBlur={() => setTouched(true)}
-              onChange={(event) => {
-                setValue(event.target.value);
-                setError(null);
-                setResult(null);
-                setMetaResponse(null);
-              }}
+              onChange={(event) => dispatch({ type: "edit", text: event.target.value })}
               placeholder={placeholder}
               className="vp-input"
             />
@@ -290,11 +296,21 @@ function collectEmbedTelemetryContext(partner?: string | null): EmbedTelemetryCo
   };
 }
 
-export function EmbedResult({ result, lang }: { result: CheckResult; lang: Lang }) {
+export function EmbedResult({
+  result,
+  lang,
+  reportedBankSms: reportedBankSmsHint,
+}: {
+  result: CheckResult;
+  lang: Lang;
+  reportedBankSms?: BankSmsKind | null;
+}) {
   const style = LEVEL_COPY[result.level];
   const Icon = style.icon;
   const passport = buildRiskPassportSummary(result, lang);
-  const advice = filterAdvice(result.level, result.reasons, lang);
+  const advice = filterAdvice(result.level, result.reasons, lang, {
+    reportedBankSms: reportedBankSmsHint ?? result.reportedBankSms,
+  });
   const fallback = ADVICE[result.level][lang];
   const topAdvice = (advice.length > 0 ? advice : fallback).slice(0, 2);
   const reasons = passport ? [] : result.reasons.slice(0, 3);
