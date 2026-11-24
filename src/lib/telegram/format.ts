@@ -21,6 +21,10 @@
 
 import { bt, type BotStringKey } from "@/lib/telegram/bot-i18n";
 import {
+  buildGuardianAngelSnapshot,
+  shouldAutoSendGuardianIntro,
+} from "@/lib/telegram/guardian-angel";
+import {
   escapeMarkdownV2,
   type InlineButton,
   type InlineKeyboard,
@@ -893,12 +897,21 @@ function joinSections(header: string, sections: string[]): string {
  * 6. Applies 4096 overflow protection
  * 7. Returns { text, keyboard }
  */
-export function formatCheckResult(result: RunCheckResult, lang: Lang): FormattedResult {
+export interface FormatCheckResultOptions {
+  /** Omit buttons repeated by the Guardian Angel card sent immediately below. */
+  compactForGuardian?: boolean;
+}
+
+export function formatCheckResult(
+  result: RunCheckResult,
+  lang: Lang,
+  options?: FormatCheckResultOptions,
+): FormattedResult {
   const passportText = renderRiskPassport(result, lang);
   if (passportText) {
     return {
       text: passportText,
-      keyboard: buildResultKeyboard(result, lang),
+      keyboard: buildResultKeyboard(result, lang, options),
     };
   }
 
@@ -918,12 +931,16 @@ export function formatCheckResult(result: RunCheckResult, lang: Lang): Formatted
 
   return {
     text,
-    keyboard: buildResultKeyboard(result, lang),
+    keyboard: buildResultKeyboard(result, lang, options),
   };
 }
 
 /** Кнопки результата: Report / Check another, + Emergency при high_risk (R4.6, R20.3). */
-function buildResultKeyboard(result: RunCheckResult, lang: Lang): InlineKeyboard {
+function buildResultKeyboard(
+  result: RunCheckResult,
+  lang: Lang,
+  options?: FormatCheckResultOptions,
+): InlineKeyboard {
   const level = result.level;
   const row: InlineButton[] = [
     { text: bt("btn_report", lang), callback_data: CB.report },
@@ -938,10 +955,17 @@ function buildResultKeyboard(result: RunCheckResult, lang: Lang): InlineKeyboard
     { text: bt("btn_explain_simple", lang), callback_data: CB.explainSimple },
   ]);
   if (level === "high_risk") {
-    keyboard.push([
-      { text: bt("btn_notify_trusted", lang), callback_data: CB.notifyTrusted },
-      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
-    ]);
+    const compactForGuardian =
+      options?.compactForGuardian ??
+      Boolean(buildGuardianAngelSnapshot(result) && shouldAutoSendGuardianIntro(result));
+    keyboard.push(
+      compactForGuardian
+        ? [{ text: bt("btn_emergency", lang), callback_data: CB.emergency }]
+        : [
+            { text: bt("btn_notify_trusted", lang), callback_data: CB.notifyTrusted },
+            { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+          ],
+    );
   }
   return keyboard;
 }

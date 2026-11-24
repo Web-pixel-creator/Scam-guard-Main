@@ -86,6 +86,7 @@ import {
   buildGuardianAngelSnapshot,
   buildGuardianAngelText,
   classifyGuardianAngelFollowUp,
+  shouldAutoSendGuardianIntro,
   type GuardianAngelSnapshot,
 } from "@/lib/telegram/guardian-angel";
 import {
@@ -992,42 +993,6 @@ async function sendPanicRoute(
   });
 }
 
-function isQrFocusedResult(result: RunCheckResult): boolean {
-  if (!result.reasons.includes("asks_to_scan_qr")) return false;
-
-  const strongerImmediateReasons = new Set([
-    "asks_for_otp",
-    "asks_for_sms_code",
-    "asks_for_card_cvv",
-    "asks_for_pin",
-    "asks_to_install_apk",
-    "apk_download_link",
-    "asks_for_money_transfer",
-    "asks_to_transfer_to_safe_account",
-    "payment_before_service",
-    "fake_delivery_payment",
-    "requests_card_digits",
-    "brand_impersonation",
-    "authority_coerced_dangerous_act",
-    "threatens_physical_violence",
-    "weird_domain",
-    "hosted_app_platform",
-  ]);
-  if (result.reasons.some((reason) => strongerImmediateReasons.has(reason))) return false;
-
-  const context = `${result.type}\n${result.display}\n${result.explanation ?? ""}`;
-  if (!/QR (?:прочитан|decoded)|Decoded QR|Telegram login QR|token hidden/i.test(context)) {
-    return false;
-  }
-  return /Telegram login QR|token hidden|2FA|authenticator|QR[^.\n]{0,80}(вход|подключ|login|device)|(?:вход|подключ)[^.\n]{0,80}QR/i.test(
-    context,
-  );
-}
-
-function shouldAutoSendGuardianIntro(result: RunCheckResult): boolean {
-  return !isQrFocusedResult(result);
-}
-
 async function maybeAutoNotifyTrustedContact(
   ctx: HandlerCtx,
   guardian: ReturnType<typeof buildGuardianAngelSnapshot>,
@@ -1136,6 +1101,7 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
   const formatted = formatCheckResult(result, ctx.session.lang);
   const lastCheck = buildLastCheckSnapshot(result);
   const guardian = buildGuardianAngelSnapshot(result);
+  const willSendGuardianIntro = Boolean(guardian && shouldAutoSendGuardianIntro(result));
   const {
     guardian: _previousGuardian,
     lastSensitiveSecret: _previousSensitiveSecret,
@@ -1202,11 +1168,11 @@ async function sendCheckResult(ctx: HandlerCtx, result: RunCheckResult): Promise
   if (!primaryContext.ok) return;
   let deliveredScenarioData = primaryContext.scenarioData;
 
-  if (guardian && shouldAutoSendGuardianIntro(result)) {
+  if (guardian && willSendGuardianIntro) {
     const guardianDelivery = await sendMessage({
       chatId: ctx.chatId,
       text: escapeMarkdownV2(buildGuardianAngelIntro(guardian, ctx.session.lang)),
-      keyboard: buildGuardianAngelKeyboard(ctx.session.lang, guardian),
+      keyboard: buildGuardianAngelKeyboard(ctx.session.lang, guardian, { includeNewCheck: false }),
     });
     if (guardianDelivery?.ok === false) {
       console.error("telegram guardian intro delivery failed");

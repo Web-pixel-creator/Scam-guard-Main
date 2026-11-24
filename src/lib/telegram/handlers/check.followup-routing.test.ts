@@ -1188,11 +1188,18 @@ describe("handleCheck follow-up routing", () => {
     expect(hoisted.sentMessages[1].text).toContain("Я рядом");
     expect(hoisted.sentMessages[1].text).toContain("безопасного конца");
     expect(hoisted.sentMessages[1].text).toContain("один безопасный шаг");
+    const primaryCallbacks = (hoisted.sentMessages[0].keyboard as { callback_data?: string }[][])
+      .flat()
+      .map((button) => button.callback_data);
     const callbacks = (hoisted.sentMessages[1].keyboard as { callback_data?: string }[][])
       .flat()
       .map((button) => button.callback_data);
+    expect(primaryCallbacks).toContain("check_another");
+    expect(primaryCallbacks).toContain("emergency");
+    expect(primaryCallbacks).not.toContain("family:notify");
     expect(callbacks).toContain("guardian:next");
     expect(callbacks).toContain("family:notify");
+    expect(callbacks).not.toContain("check_another");
 
     expect(hoisted.saveSessionCalls).toHaveLength(2);
     expect(hoisted.saveSessionCalls[0].patch).toEqual({});
