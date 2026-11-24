@@ -952,7 +952,7 @@ function buildResultKeyboard(
   }
   keyboard.push(row, [
     { text: bt("btn_why", lang), callback_data: CB.why },
-    { text: bt("btn_explain_simple", lang), callback_data: CB.explainSimple },
+    { text: bt("btn_explain_simple", lang), callback_data: CB.explainSimple, style: "primary" },
   ]);
   if (level === "high_risk") {
     const compactForGuardian =
@@ -960,10 +960,14 @@ function buildResultKeyboard(
       Boolean(buildGuardianAngelSnapshot(result) && shouldAutoSendGuardianIntro(result));
     keyboard.push(
       compactForGuardian
-        ? [{ text: bt("btn_emergency", lang), callback_data: CB.emergency }]
+        ? [{ text: bt("btn_emergency", lang), callback_data: CB.emergency, style: "danger" }]
         : [
-            { text: bt("btn_notify_trusted", lang), callback_data: CB.notifyTrusted },
-            { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+            {
+              text: bt("btn_notify_trusted", lang),
+              callback_data: CB.notifyTrusted,
+              style: "primary",
+            },
+            { text: bt("btn_emergency", lang), callback_data: CB.emergency, style: "danger" },
           ],
     );
   }
@@ -999,16 +1003,30 @@ export function formatSafety(lang: Lang): string {
  */
 export function formatWelcome(lang: Lang): { text: string; keyboard: InlineKeyboard } {
   const keyboard: InlineKeyboard = [
-    [{ text: "\u{1F4DE} " + bt("btn_live_call_now", lang), callback_data: CB.liveCall }],
     [
-      { text: "\u{1F50D} " + bt("btn_quick_check", lang), callback_data: CB.checkAnother },
+      {
+        text: "\u{1F4DE} " + bt("btn_live_call_now", lang),
+        callback_data: CB.liveCall,
+        style: "danger",
+      },
+    ],
+    [
+      {
+        text: "\u{1F50D} " + bt("btn_quick_check", lang),
+        callback_data: CB.checkAnother,
+        style: "primary",
+      },
       {
         text: "\u{1F9F5} " + bt("btn_quick_conversation", lang),
         callback_data: CB.conversationStart,
       },
     ],
     [
-      { text: "\u{1F198} " + bt("btn_quick_panic", lang), callback_data: CB.emergency },
+      {
+        text: "\u{1F198} " + bt("btn_quick_panic", lang),
+        callback_data: CB.emergency,
+        style: "danger",
+      },
       { text: "\u{1F4E2} " + bt("btn_quick_report", lang), callback_data: CB.report },
     ],
     [

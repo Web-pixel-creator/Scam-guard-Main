@@ -16,7 +16,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 
-import { formatCheckResult, CB, RISK_EMOJI } from "@/lib/telegram/format";
+import { formatCheckResult, formatWelcome, CB, RISK_EMOJI } from "@/lib/telegram/format";
 import { REASON_LABELS, type RiskLevel, type ReasonCode } from "@/lib/risk/rules";
 import type { RunCheckResult } from "@/lib/risk/check-core";
 import type { InputType } from "@/lib/risk/detect";
@@ -695,6 +695,17 @@ describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
       CB.notifyTrusted,
       CB.emergency,
     ]);
+    expect(standalone.keyboard[2].map((b) => b.style)).toEqual(["primary", "danger"]);
+    expect(keyboard[1][1]?.style).toBe("primary");
+    expect(keyboard[2][0]?.style).toBe("danger");
+  });
+
+  it("assigns Bot API 9.4 semantic colors to welcome panic and primary buttons", () => {
+    const welcome = formatWelcome("ru");
+    const byCb = new Map(welcome.keyboard.flat().map((b) => [b.callback_data, b.style]));
+    expect(byCb.get(CB.liveCall)).toBe("danger");
+    expect(byCb.get(CB.emergency)).toBe("danger");
+    expect(byCb.get(CB.checkAnother)).toBe("primary");
   });
 
   it("keyboard layout: Report+CheckAnother in row 1, Why/simple explain in row 2, no row 3 for non-high_risk", () => {

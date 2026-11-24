@@ -403,6 +403,8 @@ const META_RISK_OVERRIDE_REASONS = new Set<ReasonCode>([
   "money_mule_recruitment",
   "advance_fee_prize_inheritance",
   "telegram_account_takeover_phishing",
+  "telegram_mini_app_phishing",
+  "deepfake_voice_video_impersonation",
   "dropper_recruitment",
   "authority_coerced_dangerous_act",
   "carrier_command_already_dialed",

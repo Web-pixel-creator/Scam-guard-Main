@@ -56,7 +56,7 @@ const ocrSchema = z.object({
       const parsed = parseAllowedImageDataUrl(value);
       if (!parsed) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "invalid_image_data_url",
         });
         return z.NEVER;

@@ -783,6 +783,22 @@ function extractGeminiText(data: unknown): string | null {
   return text || null;
 }
 
+function geminiThinkingConfig(
+  effort: AiReasoningEffort | undefined,
+): { thinkingLevel: "MINIMAL" | "LOW" | "MEDIUM" | "HIGH" } | undefined {
+  if (!effort || effort === "none") return undefined;
+  const levels: Record<
+    Exclude<AiReasoningEffort, "none">,
+    "MINIMAL" | "LOW" | "MEDIUM" | "HIGH"
+  > = {
+    minimal: "MINIMAL",
+    low: "LOW",
+    medium: "MEDIUM",
+    high: "HIGH",
+  };
+  return { thinkingLevel: levels[effort] };
+}
+
 async function transcribeAudioWithGemini(
   cfg: AiConfig,
   payload: DataUrlPayload,
@@ -794,6 +810,9 @@ async function transcribeAudioWithGemini(
     model,
   )}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
   const prompt = buildVoiceTranscriptionPrompt(lang);
+  const thinkingConfig = geminiThinkingConfig(
+    parseAiReasoningEffort(process.env.OPENAI_TRANSCRIBE_REASONING_EFFORT) ?? cfg.reasoningEffort,
+  );
 
   // Await this at the last possible boundary: callers may have spent time in
   // admission/download work since consent was claimed, so an earlier lease
@@ -816,6 +835,7 @@ async function transcribeAudioWithGemini(
             ],
           },
         ],
+        ...(thinkingConfig ? { generationConfig: { thinkingConfig } } : {}),
       }),
       signal: controller.signal,
     });
