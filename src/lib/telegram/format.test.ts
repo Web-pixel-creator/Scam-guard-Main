@@ -661,7 +661,13 @@ describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
     expect(cbs).toContain(CB.checkAnother);
     expect(cbs).toContain(CB.why);
     expect(cbs).toContain(CB.explainSimple);
-    expect(cbs).toContain(CB.notifyTrusted);
+    // family:notify is omitted from the primary card when Guardian Angel immediately follows.
+    expect(cbs).not.toContain(CB.notifyTrusted);
+
+    const standalone = formatCheckResult(baseResult({ level: "high_risk" }), "ru", {
+      compactForGuardian: false,
+    });
+    expect(callbacks(standalone.keyboard)).toContain(CB.notifyTrusted);
   });
 
   it("для прочих уровней кнопки Emergency нет, но Report / Check another / Why присутствуют", () => {
@@ -680,7 +686,15 @@ describe("formatCheckResult — Emergency button (R4.6, R20.3)", () => {
     const { keyboard } = formatCheckResult(baseResult({ level: "high_risk" }), "ru");
     expect(keyboard[0].map((b) => b.callback_data)).toEqual([CB.report, CB.checkAnother]);
     expect(keyboard[1].map((b) => b.callback_data)).toEqual([CB.why, CB.explainSimple]);
-    expect(keyboard[2].map((b) => b.callback_data)).toEqual([CB.notifyTrusted, CB.emergency]);
+    expect(keyboard[2].map((b) => b.callback_data)).toEqual([CB.emergency]);
+
+    const standalone = formatCheckResult(baseResult({ level: "high_risk" }), "ru", {
+      compactForGuardian: false,
+    });
+    expect(standalone.keyboard[2].map((b) => b.callback_data)).toEqual([
+      CB.notifyTrusted,
+      CB.emergency,
+    ]);
   });
 
   it("keyboard layout: Report+CheckAnother in row 1, Why/simple explain in row 2, no row 3 for non-high_risk", () => {
