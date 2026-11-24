@@ -644,10 +644,28 @@ const DEFAULT_AI_MODEL = "gpt-4o-mini";
 const DEFAULT_TRANSCRIBE_MODEL = "gpt-4o-mini-transcribe";
 const MAX_TRANSCRIPT_CHARS = 2000;
 
+type AiReasoningEffort = "none" | "minimal" | "low" | "medium" | "high";
+const VALID_AI_REASONING_EFFORTS = new Set<AiReasoningEffort>([
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+]);
+
+function parseAiReasoningEffort(raw: string | undefined): AiReasoningEffort | undefined {
+  const normalized = raw?.trim().toLowerCase();
+  if (!normalized) return undefined;
+  return VALID_AI_REASONING_EFFORTS.has(normalized as AiReasoningEffort)
+    ? (normalized as AiReasoningEffort)
+    : undefined;
+}
+
 interface AiConfig {
   apiKey: string;
   baseUrl: string; // no trailing slash
   model: string;
+  reasoningEffort?: AiReasoningEffort;
 }
 
 interface DataUrlPayload {
@@ -665,7 +683,8 @@ function getAiConfig(): AiConfig | null {
   if (!apiKey) return null;
   const baseUrl = (process.env.OPENAI_BASE_URL ?? DEFAULT_AI_BASE_URL).replace(/\/+$/, "");
   const model = process.env.OPENAI_MODEL ?? DEFAULT_AI_MODEL;
-  return { apiKey, baseUrl, model };
+  const reasoningEffort = parseAiReasoningEffort(process.env.OPENAI_REASONING_EFFORT);
+  return { apiKey, baseUrl, model, ...(reasoningEffort ? { reasoningEffort } : {}) };
 }
 
 /** Optional fallback provider (used when primary is circuit-broken). */
@@ -675,7 +694,15 @@ function getFallbackAiConfig(): AiConfig | null {
   const apiKey = process.env.OPENAI_FALLBACK_API_KEY ?? process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
   const model = process.env.OPENAI_FALLBACK_MODEL ?? DEFAULT_AI_MODEL;
-  return { apiKey, baseUrl: fallbackUrl.replace(/\/+$/, ""), model };
+  const reasoningEffort = parseAiReasoningEffort(
+    process.env.OPENAI_FALLBACK_REASONING_EFFORT ?? process.env.OPENAI_REASONING_EFFORT,
+  );
+  return {
+    apiKey,
+    baseUrl: fallbackUrl.replace(/\/+$/, ""),
+    model,
+    ...(reasoningEffort ? { reasoningEffort } : {}),
+  };
 }
 
 function getTranscriptionModel(cfg: AiConfig): string {
@@ -975,7 +1002,11 @@ async function callChatCompletionOnce(
       method: "POST",
       redirect: "error",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({ model: cfg.model, messages }),
+      body: JSON.stringify({
+        model: cfg.model,
+        messages,
+        ...(cfg.reasoningEffort ? { reasoning_effort: cfg.reasoningEffort } : {}),
+      }),
       signal: controller.signal,
     });
 
