@@ -1993,21 +1993,30 @@ export function parseLiveCallCallback(data: string): LiveCallAction | null {
 
 export function buildLiveCallActiveKeyboard(lang: Lang): InlineKeyboard {
   return [
-    [{ text: bt("btn_live_hangup", lang), callback_data: `${LIVE_CALL_CB_PREFIX}hangup` }],
+    [
+      {
+        text: bt("btn_live_hangup", lang),
+        callback_data: `${LIVE_CALL_CB_PREFIX}hangup`,
+        style: "success",
+      },
+    ],
     [
       {
         text: bt("btn_live_what_to_say", lang),
         callback_data: `${LIVE_CALL_CB_PREFIX}what_to_say`,
+        style: "primary",
       },
       {
         text: bt("btn_live_sent_code", lang),
         callback_data: `${LIVE_CALL_CB_PREFIX}sent_code`,
+        style: "danger",
       },
     ],
     [
       {
         text: bt("btn_live_tell_family", lang),
         callback_data: `${LIVE_CALL_CB_PREFIX}tell_family`,
+        style: "primary",
       },
     ],
   ];
@@ -2015,11 +2024,18 @@ export function buildLiveCallActiveKeyboard(lang: Lang): InlineKeyboard {
 
 export function buildLiveCallPhraseKeyboard(lang: Lang): InlineKeyboard {
   return [
-    [{ text: bt("btn_live_hangup", lang), callback_data: `${LIVE_CALL_CB_PREFIX}hangup` }],
+    [
+      {
+        text: bt("btn_live_hangup", lang),
+        callback_data: `${LIVE_CALL_CB_PREFIX}hangup`,
+        style: "success",
+      },
+    ],
     [
       {
         text: bt("btn_live_tell_family", lang),
         callback_data: `${LIVE_CALL_CB_PREFIX}tell_family`,
+        style: "primary",
       },
     ],
   ];
@@ -2286,10 +2302,12 @@ export function buildLiveCallPostHangupKeyboard(
       {
         text: contactsButtonText(lang, 6),
         callback_data: panicContextCallback("contacts", 6),
+        style: "success",
       },
       {
         text: FOLLOWUP_BUTTONS.trusted_person[lang],
         callback_data: "family:notify",
+        style: "primary",
       },
     ],
     [
@@ -2315,15 +2333,17 @@ export function buildEmergencyFollowUpKeyboard(
 ): InlineKeyboard {
   if (panicId === 6) return buildLiveCallPostHangupKeyboard(lang, options);
 
-  const firstRow = shouldPrioritizeTrustedHelp(panicId)
+  const firstRow: InlineKeyboard[number] = shouldPrioritizeTrustedHelp(panicId)
     ? [
         {
           text: FOLLOWUP_BUTTONS.trusted_person[lang],
           callback_data: "family:notify",
+          style: "primary",
         },
         {
           text: contactsButtonText(lang, panicId),
           callback_data: panicContextCallback("contacts", panicId),
+          style: "success",
         },
       ]
     : [
@@ -2331,10 +2351,11 @@ export function buildEmergencyFollowUpKeyboard(
         {
           text: contactsButtonText(lang, panicId),
           callback_data: panicContextCallback("contacts", panicId),
+          style: "success",
         },
       ];
 
-  const secondRow = shouldPrioritizeTrustedHelp(panicId)
+  const secondRow: InlineKeyboard[number] = shouldPrioritizeTrustedHelp(panicId)
     ? [
         { text: FOLLOWUP_BUTTONS.more[lang], callback_data: panicContextCallback("more", panicId) },
         {
@@ -2350,6 +2371,7 @@ export function buildEmergencyFollowUpKeyboard(
         {
           text: FOLLOWUP_BUTTONS.trusted_person[lang],
           callback_data: "family:notify",
+          style: "primary",
         },
       ];
 

@@ -69,6 +69,35 @@ describe("transcribeVoiceCore", () => {
     expect(body.contents[0].parts[0].text).toContain("Uzbek");
     expect(body.contents[0].parts[0].text).toContain("SMS-kod");
     expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/ogg");
+    expect(body.generationConfig).toBeUndefined();
+  });
+
+  it("passes Gemini thinkingConfig when reasoning effort env is configured for STT", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai");
+    vi.stubEnv("OPENAI_MODEL", "gemini-3.5-flash-lite");
+    vi.stubEnv("OPENAI_REASONING_EFFORT", "low");
+
+    const fetchMock: FetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: "Просят код из СМС" }] } }],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const lowResult = await transcribeVoiceCore(DATA_URL, "ru", "tg:42");
+    expect(lowResult).toEqual({ text: "Просят код из СМС", secretClasses: [] });
+    const lowBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(lowBody.generationConfig).toEqual({ thinkingConfig: { thinkingLevel: "LOW" } });
+
+    vi.stubEnv("OPENAI_TRANSCRIBE_REASONING_EFFORT", "minimal");
+    await transcribeVoiceCore(DATA_URL, "ru", "tg:42");
+    const minBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(minBody.generationConfig).toEqual({ thinkingConfig: { thinkingLevel: "MINIMAL" } });
   });
 
   it("uses OpenAI-compatible audio transcriptions when the provider is not Gemini", async () => {

@@ -31,6 +31,8 @@ export type ProtectiveActionId =
   | "end_pressure_call"
   | "verify_official_channel"
   | "secure_telegram_account"
+  | "avoid_mini_app_phishing"
+  | "verify_voice_video_identity"
   | "protect_identity_access"
   | "avoid_casino_deposit"
   | "avoid_betting_payment"
@@ -113,6 +115,8 @@ export const REASON_PROTECTIVE_ACTION: Record<ReasonCode, ProtectiveActionId | n
   hosted_app_platform: null,
   brand_impersonation: "verify_official_channel",
   telegram_account_takeover_phishing: "secure_telegram_account",
+  telegram_mini_app_phishing: "avoid_mini_app_phishing",
+  deepfake_voice_video_impersonation: "verify_voice_video_identity",
   dropper_recruitment: "protect_identity_access",
   authority_coerced_dangerous_act: "avoid_dangerous_act",
   fake_penalty_points_erasure: "avoid_requested_transfer",
@@ -219,6 +223,24 @@ const REASON_ADVICE_MAP: AdviceCategory[] = [
       ru: "Не нажимайте «Отмена» и не вводите код — проверьте Telegram → Устройства вручную",
       uz: "«Bekor qilish»ni bosmang va kod kiritmang — Telegram → Qurilmalarni qo'lda tekshiring",
       en: "Do not press “Cancel” or enter codes — check Telegram → Devices manually",
+    },
+  },
+  // Telegram Mini App phishing -> never enter login credentials or connect wallets inside a Mini App
+  {
+    id: "avoid_mini_app_phishing",
+    advice: {
+      ru: "Не вводите номер, код входа Telegram, облачный пароль и не подключайте кошелёк внутри Mini App",
+      uz: "Mini App ichida telefon raqami, Telegram kirish kodi, bulutli parol kiritmang va hamyon ulamang",
+      en: "Never enter your phone, Telegram login code, cloud password, or connect a wallet inside a Mini App",
+    },
+  },
+  // Deepfake voice/video-note impersonation -> call back on saved regular phone + family code word
+  {
+    id: "verify_voice_video_identity",
+    advice: {
+      ru: "Перезвоните человеку по обычной мобильной связи на сохранённый номер и проверьте личность кодовым словом",
+      uz: "Odamga saqlangan oddiy telefon raqami orqali qayta qo'ng'iroq qiling va oilaviy kod so'z bilan tekshiring",
+      en: "Call the person back on their saved regular mobile number and verify with a family code word",
     },
   },
   // Dropper recruitment -> never hand over financial/identity access
@@ -350,6 +372,8 @@ const ADVICE_PRIORITY = [
   "avoid_withdrawal_payment",
   "avoid_qr",
   "secure_telegram_account",
+  "avoid_mini_app_phishing",
+  "verify_voice_video_identity",
   "protect_identity_access",
   "avoid_casino_deposit",
   "avoid_betting_payment",

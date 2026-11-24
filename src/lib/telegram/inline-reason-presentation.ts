@@ -247,6 +247,16 @@ export const INLINE_REASON_POLICY: Record<ReasonCode, InlineReasonPolicy> = {
     evidence: "telegram_visible",
     limitation: "telegram_visible_only",
   },
+  telegram_mini_app_phishing: {
+    priority: 9,
+    evidence: "telegram_visible",
+    limitation: "telegram_visible_only",
+  },
+  deepfake_voice_video_impersonation: {
+    priority: 8,
+    evidence: "text_pattern",
+    limitation: "signal_not_proof",
+  },
   dropper_recruitment: { priority: 10, evidence: "text_pattern", limitation: "signal_not_proof" },
   authority_coerced_dangerous_act: {
     priority: 2,

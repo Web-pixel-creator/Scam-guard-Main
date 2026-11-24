@@ -73,6 +73,8 @@ export type ReasonCode =
   | "hosted_app_platform"
   | "brand_impersonation"
   | "telegram_account_takeover_phishing"
+  | "telegram_mini_app_phishing"
+  | "deepfake_voice_video_impersonation"
   | "dropper_recruitment"
   | "authority_coerced_dangerous_act"
   | "fake_penalty_points_erasure"
@@ -140,6 +142,8 @@ const WEIGHTS: Record<ReasonCode, number> = {
   hosted_app_platform: 0, // informational, no score impact
   brand_impersonation: 40,
   telegram_account_takeover_phishing: 50,
+  telegram_mini_app_phishing: 45,
+  deepfake_voice_video_impersonation: 40,
   dropper_recruitment: 35,
   authority_coerced_dangerous_act: 50,
   fake_penalty_points_erasure: 35,
@@ -217,6 +221,8 @@ export const REASON_TRUST_IMPACT: Record<ReasonCode, ReasonTrustImpact> = {
   hosted_app_platform: "informational",
   brand_impersonation: "risk",
   telegram_account_takeover_phishing: "risk",
+  telegram_mini_app_phishing: "risk",
+  deepfake_voice_video_impersonation: "risk",
   dropper_recruitment: "risk",
   authority_coerced_dangerous_act: "risk",
   fake_penalty_points_erasure: "risk",
@@ -372,6 +378,73 @@ const TELEGRAM_ACCOUNT_ACTION_RE =
 
 function shouldFlagTelegramAccountTakeoverPhishing(text: string): boolean {
   return TELEGRAM_ACCOUNT_DELETE_CONTEXT_RE.test(text) && TELEGRAM_ACCOUNT_ACTION_RE.test(text);
+}
+
+const TELEGRAM_MINI_APP_SURFACE_RE =
+  /(?:(?:t\.me|telegram\.me)\/[a-z0-9_]{3,}(?:\/[a-z0-9_]{2,}|\?startapp=)|\b(?:mini[\s-]?app|miniapp|web[\s-]?app)\b|мини[\s-]?приложени|мини[\s-]?апп|mini[\s-]?ilova|telegram[\s-]?ilova)/iu;
+const TELEGRAM_MINI_APP_BAIT_RE =
+  /(?:подключ\w*\s+кошел|connect\s+(?:your\s+)?wallet|hamyon\w*\s+ula|введ\w*\s+(?:номер|код|парол|смс|телефон)|enter\s+(?:your\s+)?(?:phone|number|code|password|passkey)|(?:raqam|kod|parol)\w*\s+kirit|облачн\w*\s+парол|cloud\s+password|bulutli\s+parol|двухэтапн|2fa|airdrop|аирдроп|субсиди|выплат|компенсац|пособи|subsidiy|розыгрыш|подар\w*\s+telegram|stars|зв[её]зд|проголос|подтверд\w*\s+(?:аккаунт|вход|личность)|verify\s+(?:account|login|identity)|akkaunt\w*\s+tasdiq|passkey|ключ\s+доступа)/iu;
+const FAKE_TELEGRAM_SUPPORT_RE =
+  /(?:telegram\s+(?:support|security|moderation|official|service)|поддержк\w*\s+(?:telegram|телеграм)|служба\s+безопасности\s+(?:telegram|телеграм)|telegram\s+(?:xavfsizlik|qo['’]?llab-quvvatlash))/iu;
+const FAKE_TELEGRAM_SUPPORT_BAIT_RE =
+  /(?:галочк|эмодзи|badge|verified|check\s*mark|belgi|tasdiqlangan|введ\w*\s+(?:код|парол|номер)|enter\s+(?:code|password|phone)|kod\w*\s+kirit|mini[\s-]?app|мини[\s-]?приложени|startapp|ограничен|блокиров|удал\w*\s+аккаунт)/iu;
+const MINI_APP_SAFETY_OR_EDU_RE =
+  /(?:не\s+(?:вводи|подключа|открыва|переход|нажима)|никогда\s+не|never\s+(?:enter|connect|share|open)|do\s+not\s+(?:enter|connect|share)|don['’]?t\s+(?:enter|connect|share)|kiritmang|ulamang|ochmang|bosmang|что\s+такое\s+мини|what\s+is\s+(?:a\s+)?mini[\s-]?app|как\s+распознать)/iu;
+
+function splitUrlSafeSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+|\r?\n+|;\s*/u)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+function shouldFlagTelegramMiniAppPhishing(text: string): boolean {
+  const sentences = splitUrlSafeSentences(text);
+  return sentences.some((sentence, index) => {
+    if (MINI_APP_SAFETY_OR_EDU_RE.test(sentence) || isGeneralSafetyClause(sentence)) return false;
+    const prev = sentences[index - 1] ?? "";
+    const next = sentences[index + 1] ?? "";
+    const safePrev =
+      prev && !MINI_APP_SAFETY_OR_EDU_RE.test(prev) && !isGeneralSafetyClause(prev) ? prev : "";
+    const safeNext =
+      next && !MINI_APP_SAFETY_OR_EDU_RE.test(next) && !isGeneralSafetyClause(next) ? next : "";
+    const windowText = [safePrev, sentence, safeNext].filter(Boolean).join(" ");
+    return (
+      (TELEGRAM_MINI_APP_SURFACE_RE.test(windowText) &&
+        TELEGRAM_MINI_APP_BAIT_RE.test(windowText)) ||
+      (FAKE_TELEGRAM_SUPPORT_RE.test(windowText) && FAKE_TELEGRAM_SUPPORT_BAIT_RE.test(windowText))
+    );
+  });
+}
+
+const DEEPFAKE_EXPLICIT_RE =
+  /(?:дипфейк|deepfake|dipfeyk|поддел\w*\s+(?:голос|видео|круж)|клон\w*\s+голос|нейросет\w*.{0,25}(?:голос|видео|круж)|(?:^|[^\p{L}])(?:ai|ии)[\s-]*(?:голос|видео|клон)|voice\s+clon|fake\s+(?:voice|video)\s*(?:note|message|circle)?|soxta\s+(?:ovoz|video)|sun['’]?iy\s+intellekt.{0,25}(?:ovoz|video))/iu;
+const VOICE_VIDEO_NOTE_RE =
+  /(?:видеокруж\w*|видео[\s-]*круж\w*|кружоч\w*|кружок|голосово\w*|голосов\w+\s+сообщени|голосовух|voice\s*(?:note|message)|video\s*(?:note|circle|message)|ovozli\s+xabar|video\s*(?:xabar|doira|aylana)|dumaloq\s+video)/iu;
+const DEEPFAKE_IMPERSONATED_PERSON_RE =
+  /(?:мама|мамы|маме|маму|папа|папы|сын|дочь|дочка|брат|сестр|бабушк|дедушк|родствен|близк|друг|подруг|начальник|директор|руководител|хоким|министр|депутат|шеф|коллег|\bmom\b|\bmum\b|\bmother\b|\bdad\b|\bfather\b|\bson\b|\bdaughter\b|\bbrother\b|\bsister\b|\brelative\b|\bfriend\b|\bboss\b|\bdirector\b|\bceo\b|\bmanager\b|\bofficial\b|hokim|rahbar|direktor|boshliq|qarindosh|yaqin|ona|onam|ota|otam|aka|akam|uka|ukam|opa|opam|singil|singlim|do['’]?st)/iu;
+const DEEPFAKE_URGENT_DEMAND_RE =
+  /(?:деньг|денег|перевод|перевест|перевед|скин[ьи]|скинуть|займ|в\s+долг|одолж|срочн|карт[уыа]|код|смс|\bsms\b|не\s+звон|не\s+перезван|не\s+могу\s+говорить|\bmoney\b|\btransfer\b|\bsend\b.{0,20}\b(?:money|funds|cash)\b|\bborrow\b|\bloan\b|\burgent\b|\bcard\b|\bcode\b|don['’]?t\s+call|can['’]?t\s+talk|pul|o['’]?tkaz|qarz|zudlik|shoshilinch|karta|kod|qo['’]?ng['’]?iroq\s+qilma|gaplasha\s+olmay)/iu;
+const DEEPFAKE_EDU_OR_SAFETY_RE =
+  /(?:что\s+такое\s+дипфейк|как\s+(?:работает|распознать|проверить)\s+дипфейк|what\s+is\s+(?:a\s+)?deepfake|how\s+to\s+(?:spot|detect)\s+(?:a\s+)?deepfake|dipfeyk\s+nima|не\s+переводи|do\s+not\s+transfer|don['’]?t\s+transfer|pul\s+o['’]?tkazmang)/iu;
+
+export function shouldFlagDeepfakeVoiceVideoImpersonation(text: string): boolean {
+  const clauses = splitRiskClauses(text);
+  return clauses.some((clause, index) => {
+    if (DEEPFAKE_EDU_OR_SAFETY_RE.test(clause) || isGeneralSafetyClause(clause)) return false;
+    const prev = clauses[index - 1] ?? "";
+    const next = clauses[index + 1] ?? "";
+    const safePrev =
+      prev && !DEEPFAKE_EDU_OR_SAFETY_RE.test(prev) && !isGeneralSafetyClause(prev) ? prev : "";
+    const safeNext =
+      next && !DEEPFAKE_EDU_OR_SAFETY_RE.test(next) && !isGeneralSafetyClause(next) ? next : "";
+    const windowText = [safePrev, clause, safeNext].filter(Boolean).join(". ");
+    if (!DEEPFAKE_URGENT_DEMAND_RE.test(windowText)) return false;
+    return (
+      DEEPFAKE_EXPLICIT_RE.test(windowText) ||
+      (VOICE_VIDEO_NOTE_RE.test(windowText) && DEEPFAKE_IMPERSONATED_PERSON_RE.test(windowText))
+    );
+  });
 }
 
 const DROPPER_TARGET_RE =
@@ -1971,6 +2044,10 @@ function evaluateTextScript(text: string, clauses: string): ReasonCode[] {
   if (shouldFlagScreenShareRequest(text)) codes.add("asks_to_share_screen");
   if (shouldFlagTelegramAccountTakeoverPhishing(text))
     codes.add("telegram_account_takeover_phishing");
+  if (shouldFlagTelegramMiniAppPhishing(text)) codes.add("telegram_mini_app_phishing");
+  if (shouldFlagDeepfakeVoiceVideoImpersonation(text)) {
+    codes.add("deepfake_voice_video_impersonation");
+  }
   if (shouldFlagDropperRecruitment(text)) codes.add("dropper_recruitment");
   if (shouldFlagGamblingPredictionPromo(text)) codes.add("gambling_prediction_promo");
   if (shouldFlagGiveawayEngagementBait(text)) codes.add("giveaway_engagement_bait");
@@ -2434,6 +2511,16 @@ export const REASON_LABELS: Record<ReasonCode, { ru: string; uz: string; en: str
     ru: "Похоже на попытку угнать Telegram-аккаунт",
     uz: "Telegram akkauntini egallashga urinishga o'xshaydi",
     en: "Looks like a Telegram account takeover attempt",
+  },
+  telegram_mini_app_phishing: {
+    ru: "Фишинговое Telegram Mini App или поддельная проверка Telegram",
+    uz: "Soxta Telegram Mini App yoki Telegram tekshiruvi niqobi",
+    en: "Phishing Telegram Mini App or fake Telegram verification",
+  },
+  deepfake_voice_video_impersonation: {
+    ru: "Похоже на подделку голоса или видеокружка (дипфейк) от близкого или руководителя",
+    uz: "Yaqin inson yoki rahbar nomidan soxta ovoz/videoxabar (dipfeyk) belgisi",
+    en: "Looks like an AI voice or video-note impersonation (deepfake) of a loved one or boss",
   },
   dropper_recruitment: {
     ru: "Просят передать карту, SIM или аккаунт третьим лицам",

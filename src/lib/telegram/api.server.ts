@@ -13,10 +13,14 @@ import { getTelegramBotToken } from "@/lib/config.server";
 import { TELEGRAM_WEBHOOK_MAX_CONNECTIONS } from "@/lib/telegram/webhook-delivery-policy";
 import { telegramOutboundEffectAllowed } from "@/lib/telegram/outbound-effect-guard";
 
+/** Telegram Bot API 9.4 inline button color style (ignored by older clients). */
+export type InlineButtonStyle = "primary" | "success" | "danger";
+
 export interface InlineButton {
   text: string;
   callback_data?: string;
   url?: string;
+  style?: InlineButtonStyle;
 }
 export type InlineKeyboard = InlineButton[][];
 
@@ -105,7 +109,9 @@ export interface InlineQueryResultArticle {
     disable_web_page_preview?: boolean;
   };
   reply_markup?: {
-    inline_keyboard: Array<Array<{ text: string; url?: string; callback_data?: string }>>;
+    inline_keyboard: Array<
+      Array<{ text: string; url?: string; callback_data?: string; style?: InlineButtonStyle }>
+    >;
   };
 }
 

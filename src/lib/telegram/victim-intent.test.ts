@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildVictimFollowUpContext,
   buildVictimGuidanceFollowUpText,
+  buildVictimIntentKeyboard,
   buildVictimIntentText,
   classifyVictimGuidanceFollowUp,
   classifyVictimContextualFollowUp,
@@ -1881,5 +1882,31 @@ describe("new real-world scam wave routing", () => {
       kind: "code_request",
       askedContext: "code",
     });
+  });
+
+  it("lets deepfake video-circle/voice-note transfer demands reach full check and colors victim emergency buttons", () => {
+    const deepfakeMsg =
+      "Начальник прислал видеокружок в Telegram и срочно просит перевести деньги на карту, говорит сейчас не могу говорить и не звони.";
+    expect(classifyVictimIntent(deepfakeMsg)).toBeNull();
+    // Even if a prior victim-guidance context is active, a fresh scam/deepfake payload must not be hijacked as a pressure follow-up.
+    const activeCtx = buildVictimFollowUpContext(
+      { kind: "transfer_request", askedContext: "transfer" },
+      new Date("2026-11-24T10:00:00Z"),
+    );
+    expect(
+      classifyVictimGuidanceFollowUp(deepfakeMsg, activeCtx, new Date("2026-11-24T10:05:00Z")),
+    ).toBeNull();
+    expect(
+      classifyVictimGuidanceFollowUp(
+        "Служба безопасности банка: ваша карта заблокирована, срочно назовите код из SMS!",
+        activeCtx,
+        new Date("2026-11-24T10:05:00Z"),
+      ),
+    ).toBeNull();
+    const kb = buildVictimIntentKeyboard("ru", {
+      kind: "transfer_request",
+      askedContext: "transfer",
+    });
+    expect(kb[0]?.[0]?.style).toBe("danger");
   });
 });

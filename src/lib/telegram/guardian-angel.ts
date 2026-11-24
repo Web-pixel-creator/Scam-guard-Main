@@ -79,6 +79,7 @@ const VIOLENCE_SAFETY_REASONS = new Set<ReasonCode>(["threatens_physical_violenc
 const MONEY_REQUEST_REASONS = new Set<ReasonCode>([
   "asks_for_money_transfer",
   "fake_penalty_points_erasure",
+  "deepfake_voice_video_impersonation",
 ]);
 
 const MONEY_REASONS = new Set<ReasonCode>([
@@ -93,6 +94,7 @@ const MONEY_REASONS = new Set<ReasonCode>([
 
 const TELEGRAM_REASONS = new Set<ReasonCode>([
   "telegram_account_takeover_phishing",
+  "telegram_mini_app_phishing",
   "suspicious_invite_link",
   "fake_captcha_or_voting",
 ]);
@@ -472,19 +474,19 @@ export function buildGuardianAngelKeyboard(
   const keyboard: InlineKeyboard = [
     [
       { text: text.next, callback_data: GUARDIAN_CB.next },
-      { text: text.done, callback_data: GUARDIAN_CB.done },
+      { text: text.done, callback_data: GUARDIAN_CB.done, style: "success" },
     ],
   ];
 
   const showSafeCall = shouldShowSafeCallButton(snapshot);
   if (showSafeCall) {
     keyboard.push([
-      { text: text.call, callback_data: GUARDIAN_CB.safeCall },
-      { text: text.family, callback_data: "family:notify" },
+      { text: text.call, callback_data: GUARDIAN_CB.safeCall, style: "success" },
+      { text: text.family, callback_data: "family:notify", style: "primary" },
     ]);
   } else {
     keyboard.push([
-      { text: text.family, callback_data: "family:notify" },
+      { text: text.family, callback_data: "family:notify", style: "primary" },
       { text: text.plan, callback_data: GUARDIAN_CB.fullPlan },
     ]);
   }

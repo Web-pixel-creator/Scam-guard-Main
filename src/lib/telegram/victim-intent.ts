@@ -14,6 +14,7 @@ import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 import { isAccidentalOutgoingTransferIntent } from "@/lib/telegram/text-panic-intent";
 import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 import { findVerifiedContact } from "@/lib/risk/verified-contacts";
+import { shouldFlagDeepfakeVoiceVideoImpersonation } from "@/lib/risk/rules";
 import {
   INCIDENT_ACTION,
   reportsCompletedCarrierDial,
@@ -411,11 +412,21 @@ function hasConcreteArtifact(text: string): boolean {
   return false;
 }
 
+const DEEPFAKE_FULL_CHECK_SIGNAL_RE =
+  /(?:видеокруж\w*|видео[\s-]*круж\w*|кружоч\w*|кружок|video\s*(?:note|circle)|video\s*(?:xabar|doira|aylana)|dumaloq\s+video|дипфейк|deepfake|dipfeyk|поддел\w*\s+(?:голос|видео)|клон\w*\s+голос|voice\s+clon|soxta\s+(?:ovoz|video)|начальник|директор|руководител|хоким|министр|депутат|шеф|\bboss\b|\bdirector\b|\bceo\b|hokim|rahbar|direktor|boshliq|не\s+звон|не\s+перезван|не\s+могу\s+говорить|don['’]?t\s+call|can['’]?t\s+talk|qo['’]?ng['’]?iroq\s+qilma|gaplasha\s+olmay)/iu;
+
 function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
   if (text.length > LONG_MESSAGE_LIMIT) return true;
   if (hasConcreteArtifact(text)) return true;
   const trimmed = text.trim();
   if (/^\d{3,5}$/u.test(trimmed) && findVerifiedContact(trimmed) !== null) return true;
+  if (
+    !isSuspiciousBossVideoTransferRequest(text) &&
+    DEEPFAKE_FULL_CHECK_SIGNAL_RE.test(text) &&
+    shouldFlagDeepfakeVoiceVideoImpersonation(text)
+  ) {
+    return true;
+  }
   return (
     /(?:служб[аы]\s+безопасности|центральн.{0,20}банк|ваш\s+счет|ваша\s+карта|поздравляем|вы\s+выиграли|one\s?id|налоговая|поддержка\s+telegram|bank\s+xodimi|xavfsizlik\s+xizmati|kartangiz|hisobingiz|kodingizni\s+ayting|security\s+(?:department|service)|your\s+account|your\s+card).{0,120}(?:код|sms|cvv|pin|парол|ссылк|оплат|перевед|blocked|verify|code|payment|kod|to'lov)/iu.test(
       text,
@@ -1136,7 +1147,8 @@ export function classifyVictimGuidanceFollowUp(
     EXPLICIT_URL_RE.test(normalized) ||
     PHONE_RE.test(normalized) ||
     TELEGRAM_HANDLE_RE.test(normalized) ||
-    FILE_NAME_LIKE_RE.test(normalized)
+    FILE_NAME_LIKE_RE.test(normalized) ||
+    looksLikeScamPayloadRatherThanVictimPhrase(normalized)
   ) {
     return null;
   }
@@ -3369,7 +3381,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
 export function buildVictimIntentKeyboard(lang: Lang, match: VictimIntentMatch): InlineKeyboard {
   if (match.askedContext) {
     return [
-      [{ text: bt("btn_emergency", lang), callback_data: CB.emergency }],
+      [{ text: bt("btn_emergency", lang), callback_data: CB.emergency, style: "danger" }],
       [{ text: bt("btn_check_another", lang), callback_data: CB.checkAnother }],
     ];
   }
@@ -3377,7 +3389,7 @@ export function buildVictimIntentKeyboard(lang: Lang, match: VictimIntentMatch):
   return [
     ...buildAskedContextKeyboardRows(lang),
     [
-      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+      { text: bt("btn_emergency", lang), callback_data: CB.emergency, style: "danger" },
       { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
     ],
   ];
