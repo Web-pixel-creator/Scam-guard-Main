@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowRight as SignalArrowRight,
   CheckCircle as SignalCheckCircle,
   Sparkle as SignalSparkle,
+  SpeakerHigh,
+  Stop,
   UploadSimple,
   WarningCircle,
   X,
@@ -53,7 +56,8 @@ const SIGNAL_COPY = {
     ],
     inputLabel: "Что проверить",
     placeholder: "Вставьте текст сообщения, номер или ссылку…",
-    attach: "Скриншот",
+    attach: "Прикрепить фото",
+    clear: "Очистить",
     reading: "Читаем…",
     check: "Проверить риск",
     checking: "Проверяем…",
@@ -61,10 +65,16 @@ const SIGNAL_COPY = {
     loadingOcr: "Читаем скриншот",
     loadingSub: "Ссылки, давление, просьбы о кодах и переводах",
     resultLabel: "Результат проверки",
-    safe: "Низкий риск",
-    suspicious: "Подозрительно",
+    safe: "Явных признаков обмана нет",
+    suspicious: "Подозрительно — будьте осторожны",
+    highRisk: "Опасно — похоже на обман",
+    unknown: "Недостаточно данных",
+    scoreLabel: "Риск: {score} из 100",
     noReasons: "Явных опасных признаков не найдено",
     next: "Что сделать сейчас",
+    readAloud: "Прочитать вслух",
+    stopReading: "Остановить чтение",
+    urgentAction: "Уже отправили код или деньги? Срочные шаги",
     screenshot: "Скриншот",
     ocrRecognized: "Текст распознан — проверьте его перед анализом.",
     ocrText: "Текст со скриншота",
@@ -91,7 +101,8 @@ const SIGNAL_COPY = {
     ],
     inputLabel: "Nimani tekshirish kerak",
     placeholder: "Xabar matni, raqam yoki havolani joylashtiring…",
-    attach: "Skrinshot",
+    attach: "Rasm qo‘shish",
+    clear: "Tozalash",
     reading: "O‘qilmoqda…",
     check: "Xavfni tekshirish",
     checking: "Tekshirilmoqda…",
@@ -99,10 +110,16 @@ const SIGNAL_COPY = {
     loadingOcr: "Skrinshot o‘qilmoqda",
     loadingSub: "Havolalar, bosim, kod va pul o‘tkazish so‘rovlari",
     resultLabel: "Tekshiruv natijasi",
-    safe: "Past xavf",
-    suspicious: "Shubhali",
+    safe: "Aniq aldov belgilari yo‘q",
+    suspicious: "Shubhali — ehtiyot bo‘ling",
+    highRisk: "Xavfli — aldovga o‘xshaydi",
+    unknown: "Ma’lumot yetarli emas",
+    scoreLabel: "Xavf: {score} / 100",
     noReasons: "Aniq xavf belgilari topilmadi",
     next: "Hozir nima qilish kerak",
+    readAloud: "Ovoz chiqarib o‘qish",
+    stopReading: "O‘qishni to‘xtatish",
+    urgentAction: "Kod yoki pul yuborib qo‘ydingizmi? Shoshilinch qadamlar",
     screenshot: "Skrinshot",
     ocrRecognized: "Matn aniqlandi — tahlildan oldin uni tekshirib chiqing.",
     ocrText: "Skrinshotdagi matn",
@@ -128,7 +145,8 @@ const SIGNAL_COPY = {
     ],
     inputLabel: "What to check",
     placeholder: "Paste the message text, number or link…",
-    attach: "Screenshot",
+    attach: "Attach photo",
+    clear: "Clear",
     reading: "Reading…",
     check: "Check the risk",
     checking: "Checking…",
@@ -136,10 +154,16 @@ const SIGNAL_COPY = {
     loadingOcr: "Reading the screenshot",
     loadingSub: "Links, pressure, requests for codes and transfers",
     resultLabel: "Check result",
-    safe: "Low risk",
-    suspicious: "Suspicious",
+    safe: "No clear scam signs",
+    suspicious: "Suspicious — be careful",
+    highRisk: "Danger — likely a scam",
+    unknown: "Not enough data",
+    scoreLabel: "Risk: {score} / 100",
     noReasons: "No clear danger signals found",
     next: "What to do now",
+    readAloud: "Read aloud",
+    stopReading: "Stop reading",
+    urgentAction: "Already sent a code or money? Urgent steps",
     screenshot: "Screenshot",
     ocrRecognized: "Text recognised — review it before the check.",
     ocrText: "Text from the screenshot",
@@ -203,6 +227,7 @@ export function CheckInput({
   const [metaResponse, setMetaResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [checkRevision] = useState(() => ({ value: 0 }));
   const [ocrLifecycle] = useState(() => createWebOcrLifecycle());
@@ -223,8 +248,26 @@ export function CheckInput({
       const pending = activeReadRef.current;
       activeReadRef.current = null;
       pending?.read.abort();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, [checkRevision, ocrLifecycle]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [result, lang]);
+
+  function stopSpeaking() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeaking(false);
+  }
 
   function abortActiveRead() {
     const pending = activeReadRef.current;
@@ -234,6 +277,7 @@ export function CheckInput({
 
   // A verdict belongs to the submitted draft, never to its replacement.
   function invalidateCheck() {
+    stopSpeaking();
     checkRevision.value++;
     setLoading(false);
     setResult(null);
@@ -410,9 +454,9 @@ export function CheckInput({
   const levelLabel = result
     ? {
         safe: copy.safe,
-        unknown: t("risk_unknown", lang),
+        unknown: copy.unknown,
         suspicious: copy.suspicious,
-        high_risk: t("risk_high", lang),
+        high_risk: copy.highRisk,
       }[result.level]
     : "";
   const mappedReasons = result
@@ -425,6 +469,18 @@ export function CheckInput({
       })[0] ?? ADVICE[result.level][lang][0])
     : "";
   const displayScore = result ? displayRiskScore(result.score) : 0;
+  const scoreText =
+    result && result.level !== "unknown"
+      ? copy.scoreLabel.replace("{score}", String(displayScore))
+      : null;
+  const isUrgentResult = result?.level === "high_risk" || result?.level === "suspicious";
+  const hasContentToClear =
+    value.length > 0 ||
+    result !== null ||
+    error !== null ||
+    metaResponse !== null ||
+    imageDataUrl !== null ||
+    ocrPreviewOpen;
   const replaceValue = (next: string) => {
     invalidateCheck();
     setValue(next);
@@ -436,6 +492,33 @@ export function CheckInput({
   const removeImage = () => {
     invalidateCheck();
     clearImage();
+  };
+  const clearAll = () => {
+    invalidateCheck();
+    clearImage();
+    setValue("");
+    setTouched(false);
+  };
+  const toggleSpeak = () => {
+    if (!result || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (speaking) {
+      stopSpeaking();
+      return;
+    }
+    const parts = [
+      levelLabel,
+      scoreText ?? "",
+      ...resultReasons,
+      `${copy.next}: ${nextAction}`,
+    ].filter(Boolean);
+    const utter = new SpeechSynthesisUtterance(parts.join(". "));
+    utter.lang = { ru: "ru-RU", uz: "uz-UZ", en: "en-US" }[lang];
+    utter.rate = 0.92;
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+    setSpeaking(true);
   };
 
   return (
@@ -464,15 +547,28 @@ export function CheckInput({
             className="hidden"
             onChange={(event) => void onPickFile(event.target.files?.[0])}
           />
-          <button
-            className="upload-button"
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={ocrLoading}
-          >
-            <UploadSimple aria-hidden="true" />
-            {ocrLoading ? copy.reading : copy.attach}
-          </button>
+          <div className="check-field-bar-actions">
+            <button
+              className="upload-button"
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={ocrLoading}
+            >
+              <UploadSimple weight="bold" aria-hidden="true" />
+              {ocrLoading ? copy.reading : copy.attach}
+            </button>
+            {hasContentToClear && (
+              <button
+                className="clear-button"
+                type="button"
+                onClick={clearAll}
+                disabled={ocrLoading}
+              >
+                <X weight="bold" aria-hidden="true" />
+                {copy.clear}
+              </button>
+            )}
+          </div>
           <span className="field-counter">
             {charCount} / {MAX_INPUT_CHARS}
           </span>
@@ -574,18 +670,18 @@ export function CheckInput({
         ) : result ? (
           <>
             <div className="result-summary">
-              <span className="risk-icon">
+              <span className="risk-icon" aria-hidden="true">
                 {visualLevel === "safe" ? (
                   <SignalCheckCircle weight="fill" />
                 ) : (
                   <WarningCircle weight="fill" />
                 )}
               </span>
-              <div>
+              <div className="result-summary-main">
                 <span className="result-label">{copy.resultLabel}</span>
                 <strong>{levelLabel}</strong>
+                {scoreText && <span className="risk-score">{scoreText}</span>}
               </div>
-              <span className="risk-score">{displayScore} / 100</span>
             </div>
             <div className="reason-list">
               {resultReasons.map((reason) => (
@@ -593,11 +689,33 @@ export function CheckInput({
               ))}
             </div>
             <div className="safe-action">
-              <SignalCheckCircle weight="fill" />
+              <SignalCheckCircle weight="fill" aria-hidden="true" />
               <div>
                 <small>{copy.next}</small>
                 <strong>{nextAction}</strong>
               </div>
+            </div>
+            <div className="vp-result-actions">
+              <button
+                type="button"
+                className="vp-result-speak"
+                onClick={toggleSpeak}
+                aria-pressed={speaking}
+              >
+                {speaking ? (
+                  <Stop weight="fill" aria-hidden="true" />
+                ) : (
+                  <SpeakerHigh weight="fill" aria-hidden="true" />
+                )}
+                {speaking ? copy.stopReading : copy.readAloud}
+              </button>
+              {isUrgentResult && (
+                <Link to="/emergency" className="vp-result-emergency">
+                  <WarningCircle weight="fill" aria-hidden="true" />
+                  <span>{copy.urgentAction}</span>
+                  <SignalArrowRight weight="bold" aria-hidden="true" />
+                </Link>
+              )}
             </div>
           </>
         ) : error ? (

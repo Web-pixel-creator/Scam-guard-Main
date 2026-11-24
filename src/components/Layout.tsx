@@ -29,7 +29,7 @@ function BackButton() {
   );
 }
 
-function LanguageToggle({ onPick, className }: { onPick?: () => void; className: string }) {
+function LanguageToggle({ className }: { className: string }) {
   const { lang, setLang } = useLang();
   return (
     <div
@@ -38,15 +38,7 @@ function LanguageToggle({ onPick, className }: { onPick?: () => void; className:
       aria-label={{ ru: "Выбор языка", uz: "Tilni tanlash", en: "Choose language" }[lang]}
     >
       {LANGS.map((code) => (
-        <button
-          key={code}
-          type="button"
-          aria-pressed={lang === code}
-          onClick={() => {
-            setLang(code);
-            onPick?.();
-          }}
-        >
+        <button key={code} type="button" aria-pressed={lang === code} onClick={() => setLang(code)}>
           {code.toUpperCase()}
         </button>
       ))}
@@ -160,7 +152,6 @@ export function Header() {
                     {link.label}
                   </Link>
                 ))}
-            <LanguageToggle className="vp-langs vp-mobile-langs" onPick={closeMenu} />
             {/* Phones/tablets: the accessibility panel opens from the menu, so no
                 floating button covers the text. */}
             <button
@@ -222,19 +213,19 @@ export function Footer() {
   const copy = {
     ru: {
       title: ["Проверяйте до того, ", "как поверить."],
-      text: "Бесплатный антискам-помощник для Узбекистана. Без регистрации, на русском, узбекском и английском.",
+      text: "Бесплатная проверка на мошенников для Узбекистана. Без регистрации, на русском, узбекском и английском.",
       cta: "Проверить риск",
       city: "Ташкент, Узбекистан",
     },
     uz: {
       title: ["Ishonishdan oldin ", "tekshiring."],
-      text: "O‘zbekiston uchun bepul antiskam-yordamchi. Ro‘yxatdan o‘tmasdan, rus, o‘zbek va ingliz tillarida.",
+      text: "O‘zbekiston uchun firibgarlikka bepul tekshiruv. Ro‘yxatdan o‘tmasdan, rus, o‘zbek va ingliz tillarida.",
       cta: "Xavfni tekshirish",
       city: "Toshkent, O‘zbekiston",
     },
     en: {
       title: ["Check before ", "you trust."],
-      text: "A free anti-scam helper for Uzbekistan. No signup, in Russian, Uzbek and English.",
+      text: "A free scam checker for Uzbekistan. No signup, in Russian, Uzbek and English.",
       cta: "Check the risk",
       city: "Tashkent, Uzbekistan",
     },
