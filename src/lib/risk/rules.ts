@@ -428,7 +428,7 @@ const DEEPFAKE_URGENT_DEMAND_RE =
 const DEEPFAKE_EDU_OR_SAFETY_RE =
   /(?:что\s+такое\s+дипфейк|как\s+(?:работает|распознать|проверить)\s+дипфейк|what\s+is\s+(?:a\s+)?deepfake|how\s+to\s+(?:spot|detect)\s+(?:a\s+)?deepfake|dipfeyk\s+nima|не\s+переводи|do\s+not\s+transfer|don['’]?t\s+transfer|pul\s+o['’]?tkazmang)/iu;
 
-function shouldFlagDeepfakeVoiceVideoImpersonation(text: string): boolean {
+export function shouldFlagDeepfakeVoiceVideoImpersonation(text: string): boolean {
   const clauses = splitRiskClauses(text);
   return clauses.some((clause, index) => {
     if (DEEPFAKE_EDU_OR_SAFETY_RE.test(clause) || isGeneralSafetyClause(clause)) return false;

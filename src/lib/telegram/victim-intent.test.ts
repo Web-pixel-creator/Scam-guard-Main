@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildVictimFollowUpContext,
   buildVictimGuidanceFollowUpText,
+  buildVictimIntentKeyboard,
   buildVictimIntentText,
   classifyVictimGuidanceFollowUp,
   classifyVictimContextualFollowUp,
@@ -1881,5 +1882,18 @@ describe("new real-world scam wave routing", () => {
       kind: "code_request",
       askedContext: "code",
     });
+  });
+
+  it("lets deepfake video-circle/voice-note transfer demands reach full check and colors victim emergency buttons", () => {
+    expect(
+      classifyVictimIntent(
+        "Начальник прислал видеокружок в Telegram и срочно просит перевести деньги на карту, говорит сейчас не могу говорить и не звони.",
+      ),
+    ).toBeNull();
+    const kb = buildVictimIntentKeyboard("ru", {
+      kind: "transfer_request",
+      askedContext: "transfer",
+    });
+    expect(kb[0]?.[0]?.style).toBe("danger");
   });
 });

@@ -14,6 +14,7 @@ import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 import { isAccidentalOutgoingTransferIntent } from "@/lib/telegram/text-panic-intent";
 import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 import { findVerifiedContact } from "@/lib/risk/verified-contacts";
+import { shouldFlagDeepfakeVoiceVideoImpersonation } from "@/lib/risk/rules";
 import {
   INCIDENT_ACTION,
   reportsCompletedCarrierDial,
@@ -416,6 +417,12 @@ function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
   if (hasConcreteArtifact(text)) return true;
   const trimmed = text.trim();
   if (/^\d{3,5}$/u.test(trimmed) && findVerifiedContact(trimmed) !== null) return true;
+  if (
+    !isSuspiciousBossVideoTransferRequest(text) &&
+    shouldFlagDeepfakeVoiceVideoImpersonation(text)
+  ) {
+    return true;
+  }
   return (
     /(?:служб[аы]\s+безопасности|центральн.{0,20}банк|ваш\s+счет|ваша\s+карта|поздравляем|вы\s+выиграли|one\s?id|налоговая|поддержка\s+telegram|bank\s+xodimi|xavfsizlik\s+xizmati|kartangiz|hisobingiz|kodingizni\s+ayting|security\s+(?:department|service)|your\s+account|your\s+card).{0,120}(?:код|sms|cvv|pin|парол|ссылк|оплат|перевед|blocked|verify|code|payment|kod|to'lov)/iu.test(
       text,
@@ -3369,7 +3376,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
 export function buildVictimIntentKeyboard(lang: Lang, match: VictimIntentMatch): InlineKeyboard {
   if (match.askedContext) {
     return [
-      [{ text: bt("btn_emergency", lang), callback_data: CB.emergency }],
+      [{ text: bt("btn_emergency", lang), callback_data: CB.emergency, style: "danger" }],
       [{ text: bt("btn_check_another", lang), callback_data: CB.checkAnother }],
     ];
   }
@@ -3377,7 +3384,7 @@ export function buildVictimIntentKeyboard(lang: Lang, match: VictimIntentMatch):
   return [
     ...buildAskedContextKeyboardRows(lang),
     [
-      { text: bt("btn_emergency", lang), callback_data: CB.emergency },
+      { text: bt("btn_emergency", lang), callback_data: CB.emergency, style: "danger" },
       { text: bt("btn_check_another", lang), callback_data: CB.checkAnother },
     ],
   ];
