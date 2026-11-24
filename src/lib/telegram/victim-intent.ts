@@ -412,6 +412,9 @@ function hasConcreteArtifact(text: string): boolean {
   return false;
 }
 
+const DEEPFAKE_FULL_CHECK_SIGNAL_RE =
+  /(?:видеокруж\w*|видео[\s-]*круж\w*|кружоч\w*|кружок|video\s*(?:note|circle)|video\s*(?:xabar|doira|aylana)|dumaloq\s+video|дипфейк|deepfake|dipfeyk|поддел\w*\s+(?:голос|видео)|клон\w*\s+голос|voice\s+clon|soxta\s+(?:ovoz|video)|начальник|директор|руководител|хоким|министр|депутат|шеф|\bboss\b|\bdirector\b|\bceo\b|hokim|rahbar|direktor|boshliq|не\s+звон|не\s+перезван|не\s+могу\s+говорить|don['’]?t\s+call|can['’]?t\s+talk|qo['’]?ng['’]?iroq\s+qilma|gaplasha\s+olmay)/iu;
+
 function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
   if (text.length > LONG_MESSAGE_LIMIT) return true;
   if (hasConcreteArtifact(text)) return true;
@@ -419,6 +422,7 @@ function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
   if (/^\d{3,5}$/u.test(trimmed) && findVerifiedContact(trimmed) !== null) return true;
   if (
     !isSuspiciousBossVideoTransferRequest(text) &&
+    DEEPFAKE_FULL_CHECK_SIGNAL_RE.test(text) &&
     shouldFlagDeepfakeVoiceVideoImpersonation(text)
   ) {
     return true;
