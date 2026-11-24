@@ -254,7 +254,25 @@ describe("pure Telegram text panic intent", () => {
     "Ular meni hozir shoshirib, yaqinlarimga qo'ng'iroq qilmaslikni aytishyapti",
     "Raqamlarni aytvormadim.",
     "Pulni otkazvormadim.",
+    "He already sent money to a safe account",
+    "They already gave the SMS code",
   ])("does not turn third-party, physical-access, or negated text into aftercare: %s", (text) => {
     expect(classifyTextPanicIntent(text)).toBeNull();
   });
+
+  it.each<[string, number]>([
+    ["Kodni aytib qo'ydim nima qilay", 1],
+    ["SMS kodni yuborib qo'ydim, nima qilay?", 1],
+    ["Кодни айтиб қўйдим нима қилай", 1],
+    ["Pulni o'tkazib qo'ydim, yordam bering", 3],
+    ["Already sent money to a safe account", 3],
+    ["Just gave the SMS code to a caller", 1],
+    ["Already installed AnyDesk from their link", 2],
+    ["Just entered my card CVV on a fake site", 4],
+  ])(
+    "recognizes Uzbek compound -ib qo'ydim and subjectless English completed panic: %s",
+    (text, expected) => {
+      expect(classifyTextPanicIntent(text)).toBe(expected);
+    },
+  );
 });
