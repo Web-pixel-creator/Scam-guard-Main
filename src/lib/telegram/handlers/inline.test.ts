@@ -2946,4 +2946,38 @@ describe("handleInlineQuery — researched scam-wave regressions", () => {
     const firstAction = "Проверка штрафных баллов на my.gov.uz бесплатна.";
     expect(inserted.split(firstAction)).toHaveLength(2);
   });
+
+  it("allows verified official emergency and bank short codes through to runCheck instead of hiding them as codes", async () => {
+    for (const shortCode of ["102", "1257", "1344"]) {
+      hoisted.answerCalls.length = 0;
+      hoisted.runCheckCalls.length = 0;
+      hoisted.nextResult = {
+        type: "text",
+        display: shortCode,
+        level: "safe",
+        score: 0,
+        reasons: ["verified_official_contact"],
+        explanation: null,
+        knownReports: 0,
+        verifiedContact: {
+          orgName: shortCode === "102" ? "Полиция / МВД" : "UZCARD",
+          orgType: shortCode === "102" ? "government" : "payment_system",
+          source: "official",
+          display: shortCode,
+          contactType: "short_code",
+          verificationLevel: "high",
+          description: "official hotline",
+        },
+        brandEvidence: [],
+      };
+
+      await handleInlineQuery(shortCode, { userId: 42, session }, `iq-short-${shortCode}`);
+
+      expect(hoisted.runCheckCalls).toHaveLength(1);
+      const article = hoisted.answerCalls[0].results[0] as { id: string; title: string };
+      expect(article.id).not.toContain("private-code");
+      expect(article.id).not.toContain("ambiguous-numeric");
+      expect(article.title).not.toMatch(/код скрыт|неполный номер/i);
+    }
+  });
 });

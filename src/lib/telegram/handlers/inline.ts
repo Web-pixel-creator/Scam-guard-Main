@@ -8,6 +8,7 @@ import { buildRiskPassportSummary, type RiskPassportSummary } from "@/lib/risk/r
 import { runCheck, type RateLimitedError, type RunCheckResult } from "@/lib/risk/check-core";
 import { evaluateText, type RiskLevel } from "@/lib/risk/rules";
 import { redactSensitiveSecrets, type SensitiveSecretClass } from "@/lib/risk/sensitive-text";
+import { findVerifiedContact } from "@/lib/risk/verified-contacts";
 import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
 import { filterAdvice } from "@/lib/telegram/advice-filter";
 import {
@@ -4075,6 +4076,7 @@ function hasValidLuhnChecksum(digits: string): boolean {
 
 function isAmbiguousShortNumericQuery(text: string): boolean {
   const compact = normalizeIntentTextForMatching(text).replace(/[\s()-]/gu, "");
+  if (/^\d{3,8}$/u.test(compact) && findVerifiedContact(compact) !== null) return false;
   if (/^\d{4,8}$/u.test(compact)) return true;
   return /^\d{13,19}$/u.test(compact) && hasValidLuhnChecksum(compact);
 }

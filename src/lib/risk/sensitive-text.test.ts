@@ -596,4 +596,20 @@ describe("sanitizeSensitiveTextForSink", () => {
     expect(redacted).not.toContain("MIIEowIBAAKCAQEAsecretmaterial");
     expect(redacted).not.toContain("BEGIN RSA PRIVATE KEY");
   });
+
+  it("keeps verified official 3-digit emergency short codes unredacted while still masking CVV codes", () => {
+    for (const emergency of ["101", "102", "103"]) {
+      const result = sanitizeSensitiveTextForSink(emergency);
+      expect(result.redacted).toBe(false);
+      expect(result.value).toBe(emergency);
+    }
+
+    const bareCvv = sanitizeSensitiveTextForSink("123");
+    expect(bareCvv.redacted).toBe(true);
+    expect(bareCvv.classes).toContain("code");
+
+    const labeledEmergencyAsCvv = sanitizeSensitiveTextForSink("CVV 102");
+    expect(labeledEmergencyAsCvv.redacted).toBe(true);
+    expect(labeledEmergencyAsCvv.value).not.toContain("102");
+  });
 });

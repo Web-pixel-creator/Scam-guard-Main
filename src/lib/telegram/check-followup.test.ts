@@ -910,4 +910,26 @@ describe("last check follow-up router", () => {
       );
     }
   });
+
+  it("classifies conversational explain follow-ups with leading particles in RU, UZ, and EN", () => {
+    const now = new Date("2026-11-24T12:00:00Z");
+    const draft: ReportDraft = {
+      lastCheck: buildLastCheckSnapshot(
+        baseResult({ level: "high_risk", reasons: ["asks_for_sms_code", "brand_impersonation"] }),
+        now,
+      ),
+    };
+
+    for (const phrase of [
+      "А почему это обман?",
+      "Но почему так решили?",
+      "Ну объясни подробнее",
+      "But why is this a scam?",
+      "And why is it risky?",
+      "Lekin nega bu xavfli?",
+      "Xo'sh nima uchun shubhali?",
+    ]) {
+      expect(classifyLastCheckFollowUp(phrase, draft, now)).toBe("explain");
+    }
+  });
 });

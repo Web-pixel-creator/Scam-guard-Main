@@ -1868,4 +1868,18 @@ describe("new real-world scam wave routing", () => {
     expect(privacy).toMatch(/masked number|hostname|AI\/vision provider|not stored locally/iu);
     expect(uzAdvice).toContain("🆘 Shoshilinch qadamlar");
   });
+
+  it("lets direct Uzbek bank scam imperatives and standalone official short codes reach full check instead of victim guidance", () => {
+    expect(
+      classifyVictimIntent("Bank xavfsizlik xizmati: kartangiz bloklandi, SMS kodni ayting"),
+    ).toBeNull();
+    expect(classifyVictimIntent("SMS kodni ayting, aks holda karta bloklanadi")).toBeNull();
+    expect(classifyVictimIntent("102")).toBeNull();
+    expect(classifyVictimIntent("1257")).toBeNull();
+    // Third-party victim phrasing still triggers victim guidance.
+    expect(classifyVictimIntent("SMS kodni aytishni so'rashdi")).toEqual({
+      kind: "code_request",
+      askedContext: "code",
+    });
+  });
 });

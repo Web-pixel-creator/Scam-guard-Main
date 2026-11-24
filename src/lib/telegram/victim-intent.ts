@@ -13,6 +13,7 @@ import { resolveTelegramTextLanguage } from "@/lib/telegram/inline-query-languag
 import { transliterateRuLatin } from "@/lib/telegram/ru-translit";
 import { isAccidentalOutgoingTransferIntent } from "@/lib/telegram/text-panic-intent";
 import { uzbekLatinMatchingVariant } from "@/lib/risk/uz-cyrillic-translit";
+import { findVerifiedContact } from "@/lib/risk/verified-contacts";
 import {
   INCIDENT_ACTION,
   reportsCompletedCarrierDial,
@@ -413,8 +414,10 @@ function hasConcreteArtifact(text: string): boolean {
 function looksLikeScamPayloadRatherThanVictimPhrase(text: string): boolean {
   if (text.length > LONG_MESSAGE_LIMIT) return true;
   if (hasConcreteArtifact(text)) return true;
+  const trimmed = text.trim();
+  if (/^\d{3,5}$/u.test(trimmed) && findVerifiedContact(trimmed) !== null) return true;
   return (
-    /(?:служб[аы]\s+безопасности|центральн.{0,20}банк|ваш\s+счет|ваша\s+карта|поздравляем|вы\s+выиграли|one\s?id|налоговая|поддержка\s+telegram|bank\s+xodimi|kodingizni\s+ayting|security\s+department|your\s+account|your\s+card).{0,120}(?:код|sms|cvv|pin|парол|ссылк|оплат|перевед|blocked|verify|code|payment|kod|to'lov)/iu.test(
+    /(?:служб[аы]\s+безопасности|центральн.{0,20}банк|ваш\s+счет|ваша\s+карта|поздравляем|вы\s+выиграли|one\s?id|налоговая|поддержка\s+telegram|bank\s+xodimi|xavfsizlik\s+xizmati|kartangiz|hisobingiz|kodingizni\s+ayting|security\s+(?:department|service)|your\s+account|your\s+card).{0,120}(?:код|sms|cvv|pin|парол|ссылк|оплат|перевед|blocked|verify|code|payment|kod|to'lov)/iu.test(
       text,
     ) ||
     /^(?:salom|hello|здравствуйте)[,\s]+(?:men|я|this is).{0,80}(?:bank|банк|support|поддержк|xodim)/iu.test(
@@ -3245,7 +3248,7 @@ function classifyNormalizedVictimIntent(normalized: string): VictimIntentMatch |
   }
 
   const everydayAsk =
-    /(?:просят|просит|требу(?:ет|ют)|велят|сказал[аи]?|говорят|хочет|уговаривают|торопят|asks?|asked|demand|told|tell(?:s|ing)?|says?|wants?|pressure|needs?|so['’]?ra|talab|ayt|deyish|xohla|ko['’]?ndir|shoshir)/iu;
+    /(?:просят|просит|требу(?:ет|ют)|велят|сказал[аи]?|говорят|хочет|уговаривают|торопят|asks?|asked|demand|told|tell(?:s|ing)?|says?|wants?|pressure|needs?|so['’]?ra|talab|ayt(?!ing(?=$|[^\p{L}]))|deyish|xohla|ko['’]?ndir|shoshir)/iu;
   if (
     everydayAsk.test(normalized) &&
     /(?:sms|смс|otp|одноразов|verification|подтверждени|код|парол|code|password|digits|kod|parol|olti\s+raqam)/iu.test(

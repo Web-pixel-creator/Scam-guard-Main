@@ -1,3 +1,5 @@
+import { findVerifiedContact } from "./verified-contacts";
+
 export type SensitiveSecretClass =
   | "password"
   | "code"
@@ -240,7 +242,7 @@ function redactStandaloneHighConfidenceSecret(
   }
 
   const threeDigitCode = input.match(STANDALONE_THREE_DIGIT_CODE_RE);
-  if (threeDigitCode) {
+  if (threeDigitCode && findVerifiedContact(threeDigitCode[2] ?? "") === null) {
     classes.add("code");
     return `${threeDigitCode[1] ?? ""}${HIDDEN_VALUE}${threeDigitCode[3] ?? ""}`;
   }
