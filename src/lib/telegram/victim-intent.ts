@@ -1143,7 +1143,8 @@ export function classifyVictimGuidanceFollowUp(
     EXPLICIT_URL_RE.test(normalized) ||
     PHONE_RE.test(normalized) ||
     TELEGRAM_HANDLE_RE.test(normalized) ||
-    FILE_NAME_LIKE_RE.test(normalized)
+    FILE_NAME_LIKE_RE.test(normalized) ||
+    looksLikeScamPayloadRatherThanVictimPhrase(normalized)
   ) {
     return null;
   }
