@@ -47,6 +47,7 @@ afterEach(() => {
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_BASE_URL;
   delete process.env.OPENAI_MODEL;
+  delete process.env.OPENAI_REASONING_EFFORT;
 });
 
 describe("runCheck AI output safety firewall", () => {
@@ -149,5 +150,62 @@ describe("runCheck AI output safety firewall", () => {
     expect(hoisted.insertCalls).toHaveLength(3);
     expect(hoisted.insertCalls.every((row) => row.ai_explanation === null)).toBe(true);
     warn.mockRestore();
+  });
+
+  it("includes reasoning_effort only when OPENAI_REASONING_EFFORT is configured to a valid value", async () => {
+    const capturedBodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        capturedBodies.push(JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>);
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content:
+                    "Похоже на мошенников. Не сообщайте SMS-код и перезвоните в банк по официальному номеру.",
+                },
+              },
+            ],
+          }),
+          text: async () => "",
+        };
+      }),
+    );
+
+    // Unset -> field omitted
+    await runCheck({
+      input: "Срочно назовите SMS код от банка",
+      type: "text",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+    });
+    expect(capturedBodies[0]).not.toHaveProperty("reasoning_effort");
+
+    // Valid value -> forwarded normalized
+    process.env.OPENAI_REASONING_EFFORT = " LOW ";
+    await runCheck({
+      input: "Срочно назовите SMS код от банка",
+      type: "text",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+    });
+    expect(capturedBodies[1]?.reasoning_effort).toBe("low");
+
+    // Invalid value -> ignored safely
+    process.env.OPENAI_REASONING_EFFORT = "turbo";
+    await runCheck({
+      input: "Срочно назовите SMS код от банка",
+      type: "text",
+      lang: "ru",
+      rateLimitKey: nextKey(),
+      channel: "web",
+    });
+    expect(capturedBodies[2]).not.toHaveProperty("reasoning_effort");
   });
 });
