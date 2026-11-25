@@ -37,6 +37,16 @@ describe("page metadata", () => {
       content: "https://ishonch.example/scams",
     });
     expect(head.meta).toContainEqual({ property: "og:locale", content: "uz_UZ" });
+    expect(head.meta).toContainEqual({
+      property: "og:image",
+      content: "https://ishonch.example/og-image.png",
+    });
+    expect(head.meta).toContainEqual({ property: "og:image:width", content: "1200" });
+    expect(head.meta).toContainEqual({ property: "og:image:height", content: "630" });
+    expect(head.meta).toContainEqual({
+      name: "twitter:image",
+      content: "https://ishonch.example/og-image.png",
+    });
     expect(head.meta[0]).toEqual({ title: PAGE_META["/scams"].title.uz });
 
     const appeal = pageHead("/appeal", { lang: "ru", origin: "https://ishonch.example" });

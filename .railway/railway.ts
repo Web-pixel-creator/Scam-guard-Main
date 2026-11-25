@@ -31,6 +31,8 @@ export default defineRailway(() => {
       OPENAI_API_KEY: preserve(),
       OPENAI_BASE_URL: preserve(),
       OPENAI_MODEL: preserve(),
+      OPENAI_REASONING_EFFORT: preserve(),
+      OPENAI_TRANSCRIBE_REASONING_EFFORT: preserve(),
       REQUIRE_ADMIN_MFA_AAL2: preserve(),
       SUPABASE_PUBLISHABLE_KEY: preserve(),
       SUPABASE_SERVICE_ROLE_KEY: preserve(),

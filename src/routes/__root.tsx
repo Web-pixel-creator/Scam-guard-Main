@@ -209,7 +209,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { name: "author", content: SITE_NAME },
         { property: "og:site_name", content: SITE_NAME },
         { property: "og:type", content: "website" },
-        { name: "twitter:card", content: "summary" },
+        { name: "twitter:card", content: "summary_large_image" },
       ],
       links: [
         ...page.links,
@@ -217,7 +217,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         {
           rel: "icon",
           type: "image/svg+xml",
-          href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M32 10l18 7v13c0 12-7.5 21.5-18 24-10.5-2.5-18-12-18-24V17l18-7z' fill='%2314b8a6'/%3E%3Cpath d='M24 32l5 5 12-14' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+          href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230B0B0F'/%3E%3Cpath d='M32 10L50 17v13c0 12.2-7.6 21.8-18 24.5C21.6 51.8 14 42.2 14 30V17l18-7z' fill='%23FFFFFF'/%3E%3Cpath d='M23.5 32.5l6 6 12.5-14' fill='none' stroke='%23FF462E' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='49' cy='15' r='4.5' fill='%23FF462E'/%3E%3C/svg%3E",
         },
         // Only the login/admin pages talk to Supabase from the browser (public
         // checks go through server functions), so only they preconnect.

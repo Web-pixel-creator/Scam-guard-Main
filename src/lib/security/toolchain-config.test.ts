@@ -197,7 +197,7 @@ describe("toolchain security boundaries", () => {
     expect(railway).not.toContain("restartPolicyType:");
     expect(railway).toContain("restartPolicyMaxRetries: 5");
     expect(railway).toContain('replicas: { "us-west2": 1 }');
-    expect(railway.match(/\bpreserve\(\)/gu)).toHaveLength(22);
+    expect(railway.match(/\bpreserve\(\)/gu)).toHaveLength(24);
     for (const workflow of [ci, security]) {
       expect(workflow).toMatch(/^\s{2}push:\s*\r?\n\s{4}branches:\s*\r?\n\s{6}- main\s*$/mu);
       expect(workflow).not.toMatch(/^\s+paths(?:-ignore)?:/mu);
