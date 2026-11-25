@@ -105,7 +105,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1.7.1
         with:
           version: 2.104.0
 
