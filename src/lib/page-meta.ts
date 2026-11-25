@@ -203,19 +203,30 @@ export function pageUrl(path: PagePath, origin: string): string {
   return `${origin}${path}`;
 }
 
+export const OG_IMAGE_PATH = "/og-image.png";
+export const OG_IMAGE_WIDTH = "1200";
+export const OG_IMAGE_HEIGHT = "630";
+
 export function pageHead(path: PagePath, { lang, origin }: RequestPageContext) {
   const page: PageMeta = PAGE_META[path];
   const title = page.title[lang];
   const description = page.description[lang];
+  const ogTitle = page.ogTitle?.[lang] ?? title;
   const url = pageUrl(path, origin);
+  const ogImageUrl = origin ? `${origin}${OG_IMAGE_PATH}` : OG_IMAGE_PATH;
   return {
     meta: [
       { title },
       { name: "description", content: description },
-      { property: "og:title", content: page.ogTitle?.[lang] ?? title },
+      { property: "og:title", content: ogTitle },
       { property: "og:description", content: page.ogDescription?.[lang] ?? description },
       { property: "og:url", content: url },
       { property: "og:locale", content: OG_LOCALE[lang] },
+      { property: "og:image", content: ogImageUrl },
+      { property: "og:image:width", content: OG_IMAGE_WIDTH },
+      { property: "og:image:height", content: OG_IMAGE_HEIGHT },
+      { property: "og:image:alt", content: ogTitle },
+      { name: "twitter:image", content: ogImageUrl },
       ...(page.robots ? [{ name: "robots", content: page.robots }] : []),
     ],
     // A noindex page gets no canonical: the two would contradict each other.

@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 8
 
     env:
-      PUBLIC_APP_URL: https://scam-guard-main-production.up.railway.app
+      PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL || 'https://scam-guard-main-production.up.railway.app' }}
       MONITOR_LABEL: github-scheduled-production
       MONITOR_TIMEOUT_MS: "8000"
       MONITOR_MAX_PENDING_UPDATES: "0"
@@ -68,7 +68,7 @@ jobs:
     timeout-minutes: 8
 
     env:
-      PUBLIC_APP_URL: https://scam-guard-main-production.up.railway.app
+      PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL || 'https://scam-guard-main-production.up.railway.app' }}
       MONITOR_LABEL: github-manual-ai-provider
       MONITOR_TIMEOUT_MS: "8000"
       MONITOR_FAIL_ON_WARN: "true"
@@ -93,4 +93,5 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'low' }}
         run: bun scripts/prod-monitor.ts "$PUBLIC_APP_URL" --ai-only
