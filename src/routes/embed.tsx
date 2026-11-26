@@ -4,7 +4,11 @@ import { ArrowSquareOut, Check, Code, Copy } from "@phosphor-icons/react";
 
 import { PageHero, Pill, PillButton } from "@/components/viper/kit";
 
-import { buildEmbedIframeSnippet, buildEmbedWidgetUrl } from "@/lib/embed-widget";
+import {
+  buildEmbedIframeSnippet,
+  buildEmbedWidgetUrl,
+  EMBED_WIDGET_HEIGHT,
+} from "@/lib/embed-widget";
 import { useLang } from "@/lib/lang-context";
 import type { Lang } from "@/lib/i18n";
 
@@ -182,7 +186,7 @@ function EmbedPage() {
                     }[lang]
                   }
                   width="100%"
-                  height="560"
+                  height={EMBED_WIDGET_HEIGHT}
                   loading="lazy"
                   referrerPolicy="strict-origin-when-cross-origin"
                 />
