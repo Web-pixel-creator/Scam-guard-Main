@@ -6,6 +6,7 @@ import {
   Sparkle as SignalSparkle,
   SpeakerHigh,
   Stop,
+  Trash,
   UploadSimple,
   WarningCircle,
   X,
@@ -76,7 +77,13 @@ const SIGNAL_COPY = {
     stopReading: "Остановить чтение",
     urgentAction: "Уже отправили код или деньги? Срочные шаги",
     screenshot: "Скриншот",
-    ocrRecognized: "Текст распознан — проверьте его перед анализом.",
+    ocrStep1: "Шаг 1 из 2 · Подтвердите распознавание",
+    ocrNotSent: "Файл ещё не отправлен",
+    ocrStep2: "Шаг 2 из 2 · Текст распознан",
+    ocrRecognized:
+      "Проверьте текст (лишнее можно убрать) и нажмите кнопку ниже, чтобы проверить риск.",
+    ocrCheckBtn: "Проверить текст со скриншота",
+    checkedFromScreenshot: "Проверено со скриншота:",
     ocrText: "Текст со скриншота",
     removeShot: "Удалить скриншот",
   },
@@ -121,7 +128,13 @@ const SIGNAL_COPY = {
     stopReading: "O‘qishni to‘xtatish",
     urgentAction: "Kod yoki pul yuborib qo‘ydingizmi? Shoshilinch qadamlar",
     screenshot: "Skrinshot",
-    ocrRecognized: "Matn aniqlandi — tahlildan oldin uni tekshirib chiqing.",
+    ocrStep1: "1/2-qadam · O‘qishni tasdiqlang",
+    ocrNotSent: "Fayl hali yuborilmagan",
+    ocrStep2: "2/2-qadam · Matn aniqlandi",
+    ocrRecognized:
+      "Matnni tekshiring (ortiqchasini o‘chirishingiz mumkin) va pastdagi tugmani bosing.",
+    ocrCheckBtn: "Skrinshot matnini tekshirish",
+    checkedFromScreenshot: "Skrinshotdan tekshirildi:",
     ocrText: "Skrinshotdagi matn",
     removeShot: "Skrinshotni o‘chirish",
   },
@@ -165,7 +178,13 @@ const SIGNAL_COPY = {
     stopReading: "Stop reading",
     urgentAction: "Already sent a code or money? Urgent steps",
     screenshot: "Screenshot",
-    ocrRecognized: "Text recognised — review it before the check.",
+    ocrStep1: "Step 1 of 2 · Confirm screenshot scan",
+    ocrNotSent: "File not sent yet",
+    ocrStep2: "Step 2 of 2 · Text recognised",
+    ocrRecognized:
+      "Review the extracted text (you can edit it) and click the button below to run the risk check.",
+    ocrCheckBtn: "Check screenshot text",
+    checkedFromScreenshot: "Checked from screenshot:",
     ocrText: "Text from the screenshot",
     removeShot: "Remove screenshot",
   },
@@ -224,6 +243,7 @@ export function CheckInput({
   const [ocrLoading, setOcrLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CheckResult | null>(null);
+  const [checkedFromShot, setCheckedFromShot] = useState(false);
   const [metaResponse, setMetaResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -281,6 +301,7 @@ export function CheckInput({
     checkRevision.value++;
     setLoading(false);
     setResult(null);
+    setCheckedFromShot(false);
     setMetaResponse(null);
     setError(null);
     onResult?.(null);
@@ -424,6 +445,7 @@ export function CheckInput({
         ...(r as CheckResult),
         reportedBankSms: reportedBankSms(input),
       };
+      setCheckedFromShot(Boolean(checkedImageSelection));
       setResult(current);
       onResult?.(current);
       if (checkedImageSelection && ocrLifecycle.isCurrentSelection(checkedImageSelection)) {
@@ -585,67 +607,92 @@ export function CheckInput({
       </div>
 
       {imageDataUrl && !ocrPreviewOpen && (
-        <div className="signal-ocr-preview">
-          <div>
-            <strong>{imageName || copy.screenshot}</strong>
-            <span>{t("screenshot_warning", lang)}</span>
+        <div className="signal-ocr-preview vp-ocr-card">
+          <div className="vp-ocr-top">
+            <img src={imageDataUrl} alt="" className="vp-ocr-thumb" />
+            <div className="vp-ocr-meta">
+              <span className="vp-ocr-step">{copy.ocrStep1}</span>
+              <strong className="vp-ocr-name">{imageName || copy.screenshot}</strong>
+              <span className="vp-ocr-status">{copy.ocrNotSent}</span>
+            </div>
           </div>
-          <div className="checker-actions">
-            <button
-              type="button"
-              className="upload-button"
-              onClick={clearImage}
-              disabled={ocrLoading}
-            >
-              <X aria-hidden="true" />
-              {t("ocr_cancel", lang)}
-            </button>
+          <p className="vp-ocr-warning">{t("screenshot_warning", lang)}</p>
+          <div className="checker-actions vp-ocr-actions">
             <button
               type="button"
               className="check-button vp-submit"
               onClick={() => void requestOcrWithConsent()}
               disabled={ocrLoading}
             >
-              <span className="vp-pill-dot" aria-hidden="true">
+              <span className="vp-pill-dot vp-pill-dot--arrow" aria-hidden="true">
                 <SignalArrowRight weight="bold" />
               </span>
               {ocrLoading ? t("ocr_recognizing", lang) : t("ocr_consent_send", lang)}
+            </button>
+            <button
+              type="button"
+              className="upload-button vp-ocr-cancel"
+              onClick={clearImage}
+              disabled={ocrLoading}
+            >
+              <X weight="bold" aria-hidden="true" />
+              {t("ocr_cancel", lang)}
             </button>
           </div>
         </div>
       )}
 
       {ocrPreviewOpen && (
-        <div className="signal-ocr-preview">
-          <div>
-            <strong>{imageName || copy.screenshot}</strong>
-            <span>{copy.ocrRecognized}</span>
+        <div className="signal-ocr-preview vp-ocr-card vp-ocr-card--ready">
+          <div className="vp-ocr-top">
+            {imageDataUrl && <img src={imageDataUrl} alt="" className="vp-ocr-thumb" />}
+            <div className="vp-ocr-meta">
+              <span className="vp-ocr-step vp-ocr-step--ok">
+                <SignalCheckCircle weight="fill" aria-hidden="true" />
+                {copy.ocrStep2}
+              </span>
+              <strong className="vp-ocr-name">{imageName || copy.screenshot}</strong>
+            </div>
+            <button
+              type="button"
+              className="vp-ocr-remove"
+              onClick={removeImage}
+              disabled={loading}
+            >
+              <Trash weight="bold" aria-hidden="true" />
+              <span>{copy.removeShot}</span>
+            </button>
           </div>
           <textarea
+            className="vp-ocr-textarea"
             value={ocrText}
             onChange={(event) => editOcrText(event.target.value)}
-            rows={3}
+            rows={4}
             aria-label={copy.ocrText}
           />
-          <button type="button" onClick={removeImage}>
-            {copy.removeShot}
-          </button>
+          <p className="vp-ocr-hint">{copy.ocrRecognized}</p>
         </div>
       )}
 
-      <button
-        className="check-button vp-submit"
-        type="button"
-        onClick={() => void run()}
-        // Stays clickable when empty: run() explains what to paste instead
-        // of showing a greyed-out button that looks broken.
-        disabled={loading || ocrLoading}
-      >
-        <span className="vp-pill-dot" aria-hidden="true">
-          <SignalArrowRight weight="bold" />
-        </span>
-        {loading ? copy.checking : copy.check}
-      </button>
+      {!(imageDataUrl && !ocrPreviewOpen && !value.trim()) && (
+        <button
+          className="check-button vp-submit"
+          type="button"
+          onClick={() => void run()}
+          // Stays clickable when empty: run() explains what to paste instead
+          // of showing a greyed-out button that looks broken.
+          disabled={loading || ocrLoading}
+        >
+          <span className="vp-pill-dot vp-pill-dot--arrow" aria-hidden="true">
+            <SignalArrowRight weight="bold" />
+          </span>
+          {loading
+            ? copy.checking
+            : ocrPreviewOpen && !value.trim()
+              ? copy.ocrCheckBtn
+              : copy.check}
+        </button>
+      )}
 
       <div
         className={`result-panel ${
@@ -669,6 +716,18 @@ export function CheckInput({
           </div>
         ) : result ? (
           <>
+            {checkedFromShot && result.display && (
+              <p className="vp-checked-snippet">
+                <span>{copy.checkedFromScreenshot}</span>{" "}
+                <strong>
+                  «
+                  {result.display.length > 96
+                    ? `${result.display.slice(0, 95).trim()}…`
+                    : result.display}
+                  »
+                </strong>
+              </p>
+            )}
             <div className="result-summary">
               <span className="risk-icon" aria-hidden="true">
                 {visualLevel === "safe" ? (
@@ -702,12 +761,10 @@ export function CheckInput({
                 onClick={toggleSpeak}
                 aria-pressed={speaking}
               >
-                {speaking ? (
-                  <Stop weight="fill" aria-hidden="true" />
-                ) : (
-                  <SpeakerHigh weight="fill" aria-hidden="true" />
-                )}
-                {speaking ? copy.stopReading : copy.readAloud}
+                <span className="vp-result-speak-icon" aria-hidden="true">
+                  {speaking ? <Stop weight="fill" /> : <SpeakerHigh weight="bold" />}
+                </span>
+                <span>{speaking ? copy.stopReading : copy.readAloud}</span>
               </button>
               {isUrgentResult && (
                 <Link to="/emergency" className="vp-result-emergency">

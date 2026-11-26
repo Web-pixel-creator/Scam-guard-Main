@@ -60,7 +60,7 @@ function pillClass(tone: PillTone, className?: string) {
 
 function PillDot({ icon }: { icon?: ReactNode }) {
   return (
-    <span className="vp-pill-dot" aria-hidden="true">
+    <span className={`vp-pill-dot${icon ? "" : " vp-pill-dot--arrow"}`} aria-hidden="true">
       {icon ?? <ArrowRight weight="bold" />}
     </span>
   );

@@ -1,7 +1,7 @@
 import type { Lang } from "@/lib/i18n";
 
 export const EMBED_WIDGET_PATH = "/embed/check";
-export const EMBED_WIDGET_HEIGHT = 560;
+export const EMBED_WIDGET_HEIGHT = 640;
 
 export type EmbedWidgetOptions = {
   lang?: Lang | string | null;
@@ -45,7 +45,7 @@ export function buildEmbedIframeSnippet(baseUrl: string, options: EmbedWidgetOpt
     `  title="${title}"`,
     `  width="100%"`,
     `  height="${EMBED_WIDGET_HEIGHT}"`,
-    `  style="border:0;max-width:520px;width:100%;border-radius:8px;overflow:hidden;"`,
+    `  style="border:0;max-width:640px;width:100%;border-radius:12px;overflow:hidden;"`,
     `  loading="lazy"`,
     `  referrerpolicy="strict-origin-when-cross-origin"`,
     `></iframe>`,

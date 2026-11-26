@@ -51,7 +51,7 @@ function CheckPill({ isHomepage, onClick }: { isHomepage: boolean; onClick: () =
   const label = { ru: "Проверить", uz: "Tekshirish", en: "Check" }[lang];
   const content = (
     <>
-      <span className="vp-pill-dot" aria-hidden="true">
+      <span className="vp-pill-dot vp-pill-dot--arrow" aria-hidden="true">
         <ArrowRight />
       </span>
       {label}
@@ -208,7 +208,10 @@ export function Footer() {
     { to: "/report", label: t("nav_report", lang) },
     { to: "/appeal", label: t("nav_appeal", lang) },
     { to: "/privacy", label: t("nav_privacy", lang) },
-    { to: "/embed", label: { ru: "Виджет", uz: "Vidjet", en: "Widget" }[lang] },
+    {
+      to: "/embed",
+      label: { ru: "Виджет для сайтов", uz: "Saytlar uchun vidjet", en: "Site widget" }[lang],
+    },
   ] as const;
   const copy = {
     ru: {
@@ -232,7 +235,7 @@ export function Footer() {
   }[lang];
   const ctaContent = (
     <>
-      <span className="vp-pill-dot" aria-hidden="true">
+      <span className="vp-pill-dot vp-pill-dot--arrow" aria-hidden="true">
         <ArrowRight />
       </span>
       {copy.cta}
