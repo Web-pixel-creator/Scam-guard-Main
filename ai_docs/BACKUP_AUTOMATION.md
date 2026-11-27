@@ -171,8 +171,11 @@ migration history, and trusted schedules (`schedule-restore-sql`).
     full container/image/internal-network isolation verification and rolled-back
     fixtures).
 - **Reproducible in-repo local rehearsal (`supabase/recovery/rehearse_encrypted_restore.py`):**
-  Run from a clean checkout with Docker and pinned Supabase CLI `2.104.0` (no
-  production URLs, secrets, or Railway access required):
+  Run from a clean checkout on a dedicated disposable local Linux Docker engine
+  with pinned Supabase CLI `2.104.0` and native `age v1.3.1` (`age`,
+  `age-keygen`, `sha256sum`, `bash`) on `PATH` (verified before any Docker call;
+  no container fallback, no production URLs, secrets, or Railway access
+  required):
 
   ```bash
   python3 -B supabase/recovery/rehearse_encrypted_restore.py --profile production-38

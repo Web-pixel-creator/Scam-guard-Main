@@ -507,66 +507,6 @@ def ensure_pinned_images(pins, *, docker_endpoint=None, docker_env=None):
     return verified
 
 
-def ensure_offline_gates_image(docker_endpoint, *, docker_env=None):
-    """Build ishonch-recovery-gates:local on the pinned local daemon, excluding external Buildx builders."""
-    verified = verify_local_docker_endpoint(docker_endpoint)
-    pinned_env = dict(build_pinned_docker_env(verified))
-    if docker_env:
-        pinned_env.update(docker_env)
-    gate_probe = run_cmd(
-        docker_cmd(verified, "image", "inspect", "ishonch-recovery-gates:local"),
-        check=False,
-        env=pinned_env,
-        timeout=30,
-    )
-    if gate_probe.returncode == 0:
-        return "existing"
-
-    buildx_probe = run_cmd(
-        docker_cmd(verified, "buildx", "version"),
-        check=False,
-        env=pinned_env,
-        timeout=15,
-    )
-    if buildx_probe.returncode == 0:
-        inspect_out = run_cmd(
-            docker_cmd(verified, "buildx", "inspect", "default"),
-            env=pinned_env,
-            timeout=30,
-        ).stdout
-        if re.search(r"^Error:", inspect_out, re.M) or not re.search(r"^Driver:\s+docker$", inspect_out, re.M):
-            raise RuntimeError("docker buildx default builder is not using the local docker driver")
-        run_cmd(
-            docker_cmd(
-                verified,
-                "buildx", "build",
-                "--builder", "default",
-                "--load",
-                "--platform", "linux/amd64",
-                "--file", str(ROOT / "supabase/recovery/workflow-gates.Dockerfile"),
-                "--tag", "ishonch-recovery-gates:local",
-                str(ROOT / "supabase/recovery"),
-            ),
-            env=pinned_env,
-            timeout=300,
-        )
-        return "buildx-default-docker"
-
-    run_cmd(
-        docker_cmd(
-            verified,
-            "build",
-            "--platform", "linux/amd64",
-            "--file", str(ROOT / "supabase/recovery/workflow-gates.Dockerfile"),
-            "--tag", "ishonch-recovery-gates:local",
-            str(ROOT / "supabase/recovery"),
-        ),
-        env={**pinned_env, "DOCKER_BUILDKIT": "0"},
-        timeout=300,
-    )
-    return "legacy-local-daemon"
-
-
 def patch_supabase_config(config_path, project_id, db_port, major_version):
     lines = config_path.read_text(encoding="utf-8").splitlines()
     section = ""
@@ -613,32 +553,28 @@ def capture_relation_parity(container, relations, *, docker_endpoint=None, docke
     return counts, digests
 
 
-def has_native_age_v131():
-    if not all(shutil.which(cmd) for cmd in ("age", "age-keygen", "sha256sum")):
-        return False
-    probe = run_cmd(["age", "--version"], check=False, timeout=15)
-    return probe.returncode == 0 and probe.stdout.strip() == "v1.3.1"
-
-
-def run_crypto_bash(crypto_dir, script, *, use_native, check=True, docker_endpoint=None, docker_env=None):
-    if use_native:
-        return run_cmd(
-            ["bash", "-ceu", script],
-            env={"CRYPTO_DIR": str(crypto_dir), "LC_ALL": "C", "TZ": "UTC"},
-            timeout=120,
-            check=check,
+def require_native_age_v131(expected_version="1.3.1"):
+    """Fail closed before touching Docker unless native age v1.3.1 and tools are on PATH."""
+    required_tools = ("age", "age-keygen", "sha256sum", "bash")
+    missing = [cmd for cmd in required_tools if not shutil.which(cmd)]
+    if missing:
+        raise RuntimeError(
+            f"native age v{expected_version} required; missing tools on PATH: " + ", ".join(missing)
         )
-    mount_src = str(Path(crypto_dir).resolve()).replace("\\", "/")
+    probe = run_cmd(["age", "--version"], check=False, timeout=15)
+    actual = (probe.stdout or "").strip()
+    expected_tag = f"v{expected_version}"
+    if probe.returncode != 0 or actual != expected_tag:
+        raise RuntimeError(
+            f"native age {expected_tag} required (got exit={probe.returncode}, version={actual!r})"
+        )
+    return actual
+
+
+def run_crypto_bash(crypto_dir, script, *, check=True):
     return run_cmd(
-        docker_cmd(
-            docker_endpoint,
-            "run", "--rm", "--network", "none", "--cap-drop", "ALL",
-            "--security-opt", "no-new-privileges", "--entrypoint", "/bin/bash",
-            "--mount", f"type=bind,source={mount_src},target=/work/crypto",
-            "-e", "CRYPTO_DIR=/work/crypto",
-            "ishonch-recovery-gates:local", "-ceu", script,
-        ),
-        env=docker_env,
+        ["bash", "-ceu", script],
+        env={"CRYPTO_DIR": str(crypto_dir), "LC_ALL": "C", "TZ": "UTC"},
         timeout=120,
         check=check,
     )
@@ -962,6 +898,7 @@ def rehearse(profile_name, run_id, source_port, target_port):
     cli_ver = run_cmd(["supabase", "--version"], timeout=30).stdout.strip()
     if cli_ver != pins["SUPABASE_CLI_VERSION"]:
         raise RuntimeError(f"supabase CLI {cli_ver} != pinned {pins['SUPABASE_CLI_VERSION']}")
+    age_runtime_ver = require_native_age_v131(pins["AGE_VERSION"])
 
     # Reject remote or non-Unix Docker endpoints BEFORE contacting any daemon,
     # then pin every Docker, Supabase, and child gate invocation to that socket.
@@ -973,6 +910,7 @@ def rehearse(profile_name, run_id, source_port, target_port):
             profile_name,
             pins,
             cli_ver,
+            age_runtime_ver,
             run_id,
             source_port,
             target_port,
@@ -986,6 +924,7 @@ def _rehearse_pinned(
     profile_name,
     pins,
     cli_ver,
+    age_runtime_ver,
     run_id,
     source_port,
     target_port,
@@ -1011,10 +950,6 @@ def _rehearse_pinned(
         (tgt_internal_net, src_bridge_net, tgt_bridge_net),
     )
 
-    use_native_age = has_native_age_v131()
-    if not use_native_age:
-        ensure_offline_gates_image(docker_endpoint, docker_env=docker_env)
-
     pinned_images = ensure_pinned_images(pins, docker_endpoint=docker_endpoint, docker_env=docker_env)
     started_projects = set()
     created_src_networks = set()
@@ -1035,7 +970,7 @@ def _rehearse_pinned(
         "profileFingerprint": rc.fingerprint(profile),
         "supabaseCli": cli_ver,
         "pinnedImagesVerified": pinned_images,
-        "ageRuntime": "native-v1.3.1" if use_native_age else "offline-container-v1.3.1",
+        "ageRuntime": f"native-{age_runtime_ver}",
         "all20TablesNonEmptyInSource": False,
         "sourceChecks": {
             "verifyManagedSchemaLive": False,
@@ -1242,9 +1177,6 @@ def _rehearse_pinned(
             rm -f "$CRYPTO_DIR/backup.tar"
             printf '%s\t%s\t%s\n' "$age_ver" "$(stat -c %s "$CRYPTO_DIR/supabase-backup.tar.age")" "$(cat "$CRYPTO_DIR/supabase-backup.tar.age.sha256")"
             """,
-            use_native=use_native_age,
-            docker_endpoint=docker_endpoint,
-            docker_env=docker_env,
         ).stdout.strip()
         age_ver, cipher_bytes, cipher_sha = enc_meta.split("\t")
         report["encryption"]["ageVersion"] = age_ver
@@ -1275,10 +1207,7 @@ def _rehearse_pinned(
         wrong_key = run_crypto_bash(
             crypto_dir,
             'age --decrypt --identity "$CRYPTO_DIR/wrong-identity.txt" --output "$CRYPTO_DIR/bad-wrong.tar" "$CRYPTO_DIR/supabase-backup.tar.age"',
-            use_native=use_native_age,
             check=False,
-            docker_endpoint=docker_endpoint,
-            docker_env=docker_env,
         )
         if wrong_key.returncode == 0:
             raise RuntimeError("wrong age key unexpectedly decrypted bundle")
@@ -1291,10 +1220,7 @@ def _rehearse_pinned(
         corrupt_sha_check = run_crypto_bash(
             crypto_dir,
             'printf "%s  %s\\n" "$(cat "$CRYPTO_DIR/supabase-backup.tar.age.sha256")" "$CRYPTO_DIR/corrupted.tar.age" | sha256sum --check --status',
-            use_native=use_native_age,
             check=False,
-            docker_endpoint=docker_endpoint,
-            docker_env=docker_env,
         )
         if corrupt_sha_check.returncode == 0:
             raise RuntimeError("sha256sum --check unexpectedly accepted corrupted ciphertext")
@@ -1303,10 +1229,7 @@ def _rehearse_pinned(
         corrupt_age_check = run_crypto_bash(
             crypto_dir,
             'age --decrypt --identity "$CRYPTO_DIR/identity.txt" --output "$CRYPTO_DIR/bad-corrupt.tar" "$CRYPTO_DIR/corrupted.tar.age"',
-            use_native=use_native_age,
             check=False,
-            docker_endpoint=docker_endpoint,
-            docker_env=docker_env,
         )
         if corrupt_age_check.returncode == 0:
             raise RuntimeError("age --decrypt unexpectedly accepted corrupted ciphertext")
@@ -1325,9 +1248,6 @@ def _rehearse_pinned(
               --output "$CRYPTO_DIR/decrypted.tar" \
               "$CRYPTO_DIR/supabase-backup.tar.age"
             """,
-            use_native=use_native_age,
-            docker_endpoint=docker_endpoint,
-            docker_env=docker_env,
         )
         decrypted_tar = crypto_dir / "decrypted.tar"
         expected_members = sorted([*EXPECTED_BUNDLE_FILES, "manifest.json"])

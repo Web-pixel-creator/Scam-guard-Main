@@ -324,6 +324,8 @@ class RehearseEncryptedRestoreTests(unittest.TestCase):
         for remote in ("tcp://10.0.0.5:2376", "ssh://ops@prod.example", "npipe:////./pipe/docker_engine", ""):
             with self.subTest(endpoint=remote):
                 with patch.object(rehearsal, "run_cmd", return_value=_ok(pins["SUPABASE_CLI_VERSION"] + "\n")), patch.object(
+                    rehearsal, "require_native_age_v131", return_value="v1.3.1"
+                ), patch.object(
                     rehearsal, "docker_endpoint_host", return_value=remote
                 ), patch.object(
                     rehearsal, "docker_engine_info", side_effect=AssertionError("docker info must not be called")
@@ -332,6 +334,58 @@ class RehearseEncryptedRestoreTests(unittest.TestCase):
                 ):
                     with self.assertRaisesRegex(RuntimeError, "local Unix-socket"):
                         rehearsal.rehearse("production-38", "12345", 58422, 59422)
+
+    def test_require_native_age_v131_fails_closed_before_docker_and_never_uses_container_fallback(self):
+        # Missing required CLI tools -> fails closed.
+        for missing_tool in ("age", "age-keygen", "sha256sum", "bash"):
+            with self.subTest(missing=missing_tool):
+                with patch.object(
+                    rehearsal.shutil,
+                    "which",
+                    side_effect=lambda cmd, skip=missing_tool: None if cmd == skip else f"/usr/bin/{cmd}",
+                ):
+                    with self.assertRaisesRegex(RuntimeError, f"missing tools on PATH:.*{missing_tool}"):
+                        rehearsal.require_native_age_v131("1.3.1")
+
+        # Wrong age version or non-zero exit -> fails closed.
+        for bad_res in (_ok("v1.2.0\n"), _ok(""), _fail(1, "age failed")):
+            with self.subTest(result=bad_res):
+                with patch.object(rehearsal.shutil, "which", return_value="/usr/bin/tool"), patch.object(
+                    rehearsal, "run_cmd", return_value=bad_res
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "native age v1.3.1 required"):
+                        rehearsal.require_native_age_v131("1.3.1")
+
+        # Exact v1.3.1 passes.
+        with patch.object(rehearsal.shutil, "which", return_value="/usr/bin/tool"), patch.object(
+            rehearsal, "run_cmd", return_value=_ok("v1.3.1\n")
+        ):
+            self.assertEqual(rehearsal.require_native_age_v131("1.3.1"), "v1.3.1")
+
+        # rehearse() checks native age v1.3.1 BEFORE querying Docker endpoint or daemon.
+        pins = rehearsal.parse_workflow_pins()
+        with patch.object(rehearsal, "run_cmd", return_value=_ok(pins["SUPABASE_CLI_VERSION"] + "\n")), patch.object(
+            rehearsal.shutil, "which", return_value=None
+        ), patch.object(
+            rehearsal, "docker_endpoint_host", side_effect=AssertionError("docker endpoint must not be queried")
+        ), patch.object(
+            rehearsal, "docker_engine_info", side_effect=AssertionError("docker info must not be called")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "native age v1.3.1 required"):
+                rehearsal.rehearse("production-38", "12345", 58422, 59422)
+
+        # run_crypto_bash executes native bash directly (no container fallback).
+        seen = []
+
+        def fake_crypto_run(args, **kwargs):
+            seen.append((args, kwargs.get("env")))
+            return _ok("v1.3.1\n")
+
+        with patch.object(rehearsal, "run_cmd", side_effect=fake_crypto_run):
+            rehearsal.run_crypto_bash("/tmp/private-crypto", "age --version")
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(seen[0][0], ["bash", "-ceu", "age --version"])
+        self.assertEqual(seen[0][1]["CRYPTO_DIR"], "/tmp/private-crypto")
 
     def test_pinned_docker_env_and_commands_override_context_and_restore_os_environ(self):
         endpoint = "unix:///run/disposable-docker.sock"
@@ -397,80 +451,6 @@ class RehearseEncryptedRestoreTests(unittest.TestCase):
                 self.assertEqual(args[:3], ["docker", "--host", endpoint])
             self.assertEqual(env["DOCKER_HOST"], endpoint)
             self.assertIsNone(env["DOCKER_CONTEXT"])
-
-    def test_ensure_offline_gates_image_excludes_external_buildx_builder(self):
-        endpoint = "unix:///run/disposable-docker.sock"
-
-        # Case A: buildx present with local docker driver -> uses --builder default --load.
-        calls_a = []
-
-        def fake_buildx_local(args, **kwargs):
-            calls_a.append((args, kwargs.get("env")))
-            norm = _docker_subargs(args)
-            if norm[:3] == ["docker", "image", "inspect"]:
-                return _fail(1)
-            if norm[:3] == ["docker", "buildx", "version"]:
-                return _ok("github.com/docker/buildx v0.30.1\n")
-            if norm[:4] == ["docker", "buildx", "inspect", "default"]:
-                return _ok("Name: default\nDriver: docker\n")
-            return _ok("")
-
-        with patch.object(rehearsal, "run_cmd", side_effect=fake_buildx_local):
-            mode = rehearsal.ensure_offline_gates_image(endpoint)
-        self.assertEqual(mode, "buildx-default-docker")
-        build_cmds = [(a, e) for a, e in calls_a if _docker_subargs(a)[:3] == ["docker", "buildx", "build"]]
-        self.assertEqual(len(build_cmds), 1)
-        build_args, build_env = build_cmds[0]
-        self.assertEqual(build_args[:3], ["docker", "--host", endpoint])
-        self.assertIn("--builder", build_args)
-        self.assertEqual(build_args[build_args.index("--builder") + 1], "default")
-        self.assertIn("--load", build_args)
-        self.assertEqual(build_env["DOCKER_HOST"], endpoint)
-        self.assertIsNone(build_env["DOCKER_CONTEXT"])
-        self.assertEqual(build_env["BUILDX_BUILDER"], "default")
-
-        # Case B: buildx default reports non-docker driver (or error) -> fails closed without building.
-        for bad_inspect in ("Name: default\nDriver: remote\n", "Name: default\nDriver: docker-container\n", "Name: default\nDriver:\nError: unreachable\n"):
-            with self.subTest(inspect=bad_inspect):
-                calls_b = []
-
-                def fake_buildx_external(args, **kwargs):
-                    calls_b.append(args)
-                    norm = _docker_subargs(args)
-                    if norm[:3] == ["docker", "image", "inspect"]:
-                        return _fail(1)
-                    if norm[:3] == ["docker", "buildx", "version"]:
-                        return _ok("github.com/docker/buildx v0.30.1\n")
-                    if norm[:4] == ["docker", "buildx", "inspect", "default"]:
-                        return _ok(bad_inspect)
-                    raise AssertionError(f"unexpected build invocation: {args}")
-
-                with patch.object(rehearsal, "run_cmd", side_effect=fake_buildx_external):
-                    with self.assertRaisesRegex(RuntimeError, "local docker driver"):
-                        rehearsal.ensure_offline_gates_image(endpoint)
-
-        # Case C: buildx absent -> falls back to legacy local daemon build with DOCKER_BUILDKIT=0.
-        calls_c = []
-
-        def fake_no_buildx(args, **kwargs):
-            calls_c.append((args, kwargs.get("env")))
-            norm = _docker_subargs(args)
-            if norm[:3] == ["docker", "image", "inspect"]:
-                return _fail(1)
-            if norm[:3] == ["docker", "buildx", "version"]:
-                return _fail(125, "unknown command: docker buildx")
-            return _ok("")
-
-        with patch.object(rehearsal, "run_cmd", side_effect=fake_no_buildx):
-            mode_c = rehearsal.ensure_offline_gates_image(endpoint)
-        self.assertEqual(mode_c, "legacy-local-daemon")
-        legacy_cmds = [(a, e) for a, e in calls_c if _docker_subargs(a)[:2] == ["docker", "build"]]
-        self.assertEqual(len(legacy_cmds), 1)
-        legacy_args, legacy_env = legacy_cmds[0]
-        self.assertEqual(legacy_args[:3], ["docker", "--host", endpoint])
-        self.assertEqual(legacy_env["DOCKER_HOST"], endpoint)
-        self.assertEqual(legacy_env["DOCKER_BUILDKIT"], "0")
-        self.assertIsNone(legacy_env["DOCKER_CONTEXT"])
 
     def test_rewrite_roles_idempotent_guards_only_create_role(self):
         sample = 'CREATE ROLE "custom_role" WITH LOGIN;\nALTER ROLE postgres SET search_path = public;\n'
