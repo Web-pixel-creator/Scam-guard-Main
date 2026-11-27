@@ -11,6 +11,7 @@ This is local synthetic verification, NOT a hosted GitHub Actions or production
 backup proof.
 """
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -352,8 +353,70 @@ def diff_inventory(before, after):
     return {"added": added, "removed": removed, "exactMatch": exact}
 
 
+DOCKER_PINNED_ENV_KEYS = (
+    "DOCKER_HOST",
+    "DOCKER_CONTEXT",
+    "DOCKER_TLS_VERIFY",
+    "DOCKER_CERT_PATH",
+    "BUILDX_BUILDER",
+)
+
+
+def verify_local_docker_endpoint(endpoint):
+    """Reject missing, remote, or non-Unix Docker endpoints before any daemon call."""
+    if not re.fullmatch(r"unix:///[^\s]+", endpoint or ""):
+        raise RuntimeError(
+            f"dedicated local Unix-socket Docker endpoint required (got {endpoint!r})"
+        )
+    return endpoint
+
+
+def build_pinned_docker_env(endpoint):
+    """Pin Docker, Supabase CLI, and child gates to one verified local Unix socket."""
+    verified = verify_local_docker_endpoint(endpoint)
+    return {
+        "DOCKER_HOST": verified,
+        "DOCKER_CONTEXT": None,
+        "DOCKER_TLS_VERIFY": None,
+        "DOCKER_CERT_PATH": None,
+        "BUILDX_BUILDER": "default",
+    }
+
+
+@contextmanager
+def pinned_process_docker_env(docker_env):
+    """Pin os.environ for in-process helpers (e.g., gate.run_tests) and restore on exit."""
+    saved = {key: os.environ.get(key) for key in DOCKER_PINNED_ENV_KEYS}
+    try:
+        for key, value in docker_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        yield
+    finally:
+        for key, prev in saved.items():
+            if prev is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prev
+
+
+def docker_cmd(docker_endpoint, *subargs):
+    """Build a docker CLI invocation pinned via --host when an endpoint is supplied."""
+    if docker_endpoint is None:
+        return ["docker", *subargs]
+    return ["docker", "--host", verify_local_docker_endpoint(docker_endpoint), *subargs]
+
+
 def run_cmd(args, *, text_input=None, env=None, timeout=180, check=True, cwd=None):
-    merged_env = {**os.environ, **(env or {})}
+    merged_env = dict(os.environ)
+    if env:
+        for key, value in env.items():
+            if value is None:
+                merged_env.pop(key, None)
+            else:
+                merged_env[key] = value
     result = subprocess.run(
         args,
         input=text_input,
@@ -372,9 +435,9 @@ def run_cmd(args, *, text_input=None, env=None, timeout=180, check=True, cwd=Non
     return result
 
 
-def docker_snapshot():
+def docker_snapshot(docker_endpoint=None, *, docker_env=None):
     def items(args):
-        out = run_cmd(["docker", *args], timeout=30).stdout
+        out = run_cmd(docker_cmd(docker_endpoint, *args), env=docker_env, timeout=30).stdout
         return sorted(line.strip() for line in out.splitlines() if line.strip())
 
     return {
@@ -384,19 +447,21 @@ def docker_snapshot():
     }
 
 
-def psql_exec(container, sql_text, *, user="postgres", extra_args=()):
+def psql_exec(container, sql_text, *, user="postgres", extra_args=(), docker_endpoint=None, docker_env=None):
     return run_cmd(
-        [
-            "docker", "exec", "--user", "postgres", "-i", container,
+        docker_cmd(
+            docker_endpoint,
+            "exec", "--user", "postgres", "-i", container,
             "psql", "-X", "-Atq", "--no-password", "-h", "/var/run/postgresql",
             "-U", user, "-d", "postgres", "-v", "ON_ERROR_STOP=1", *extra_args,
-        ],
+        ),
         text_input=sql_text,
+        env=docker_env,
         timeout=180,
     ).stdout.strip()
 
 
-def ensure_pinned_images(pins):
+def ensure_pinned_images(pins, *, docker_endpoint=None, docker_env=None):
     """Ensure all 4 workflow-pinned images exist locally and pass verify_image_identity."""
     verified = {}
     for svc in PINNED_SERVICES:
@@ -412,7 +477,12 @@ def ensure_pinned_images(pins):
         matched_ref = None
         representation = None
         for ref in candidates:
-            probe = run_cmd(["docker", "image", "inspect", ref], check=False, timeout=30)
+            probe = run_cmd(
+                docker_cmd(docker_endpoint, "image", "inspect", ref),
+                check=False,
+                env=docker_env,
+                timeout=30,
+            )
             if probe.returncode != 0:
                 continue
             records = json.loads(probe.stdout)
@@ -425,14 +495,76 @@ def ensure_pinned_images(pins):
             except ValueError:
                 continue
         if matched_ref is None:
-            run_cmd(["docker", "pull", f"{image}@{digest}"], timeout=600)
+            run_cmd(docker_cmd(docker_endpoint, "pull", f"{image}@{digest}"), env=docker_env, timeout=600)
             matched_ref = f"{image}@{digest}"
         if matched_ref != image:
-            run_cmd(["docker", "tag", matched_ref, image], timeout=30)
-        final_record = json.loads(run_cmd(["docker", "image", "inspect", image], timeout=30).stdout)[0]
+            run_cmd(docker_cmd(docker_endpoint, "tag", matched_ref, image), env=docker_env, timeout=30)
+        final_record = json.loads(
+            run_cmd(docker_cmd(docker_endpoint, "image", "inspect", image), env=docker_env, timeout=30).stdout
+        )[0]
         representation = verify_image_identity(final_record, digest, config_id)
         verified[svc.lower()] = {"image": image, "representation": representation}
     return verified
+
+
+def ensure_offline_gates_image(docker_endpoint, *, docker_env=None):
+    """Build ishonch-recovery-gates:local on the pinned local daemon, excluding external Buildx builders."""
+    verified = verify_local_docker_endpoint(docker_endpoint)
+    pinned_env = dict(build_pinned_docker_env(verified))
+    if docker_env:
+        pinned_env.update(docker_env)
+    gate_probe = run_cmd(
+        docker_cmd(verified, "image", "inspect", "ishonch-recovery-gates:local"),
+        check=False,
+        env=pinned_env,
+        timeout=30,
+    )
+    if gate_probe.returncode == 0:
+        return "existing"
+
+    buildx_probe = run_cmd(
+        docker_cmd(verified, "buildx", "version"),
+        check=False,
+        env=pinned_env,
+        timeout=15,
+    )
+    if buildx_probe.returncode == 0:
+        inspect_out = run_cmd(
+            docker_cmd(verified, "buildx", "inspect", "default"),
+            env=pinned_env,
+            timeout=30,
+        ).stdout
+        if re.search(r"^Error:", inspect_out, re.M) or not re.search(r"^Driver:\s+docker$", inspect_out, re.M):
+            raise RuntimeError("docker buildx default builder is not using the local docker driver")
+        run_cmd(
+            docker_cmd(
+                verified,
+                "buildx", "build",
+                "--builder", "default",
+                "--load",
+                "--platform", "linux/amd64",
+                "--file", str(ROOT / "supabase/recovery/workflow-gates.Dockerfile"),
+                "--tag", "ishonch-recovery-gates:local",
+                str(ROOT / "supabase/recovery"),
+            ),
+            env=pinned_env,
+            timeout=300,
+        )
+        return "buildx-default-docker"
+
+    run_cmd(
+        docker_cmd(
+            verified,
+            "build",
+            "--platform", "linux/amd64",
+            "--file", str(ROOT / "supabase/recovery/workflow-gates.Dockerfile"),
+            "--tag", "ishonch-recovery-gates:local",
+            str(ROOT / "supabase/recovery"),
+        ),
+        env={**pinned_env, "DOCKER_BUILDKIT": "0"},
+        timeout=300,
+    )
+    return "legacy-local-daemon"
 
 
 def patch_supabase_config(config_path, project_id, db_port, major_version):
@@ -457,15 +589,24 @@ def patch_supabase_config(config_path, project_id, db_port, major_version):
     config_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
-def capture_relation_parity(container, relations):
+def capture_relation_parity(container, relations, *, docker_endpoint=None, docker_env=None):
     counts = {}
     digests = {}
     for relation in relations:
         schema, table = relation.split(".", 1)
-        count = int(psql_exec(container, f'SELECT count(*) FROM "{schema}"."{table}";'))
+        count = int(
+            psql_exec(
+                container,
+                f'SELECT count(*) FROM "{schema}"."{table}";',
+                docker_endpoint=docker_endpoint,
+                docker_env=docker_env,
+            )
+        )
         canonical = psql_exec(
             container,
             f'SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text), \'[]\'::jsonb)::text FROM "{schema}"."{table}" t;',
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         counts[relation] = count
         digests[relation] = sha256_text(canonical)
@@ -479,7 +620,7 @@ def has_native_age_v131():
     return probe.returncode == 0 and probe.stdout.strip() == "v1.3.1"
 
 
-def run_crypto_bash(crypto_dir, script, *, use_native, check=True):
+def run_crypto_bash(crypto_dir, script, *, use_native, check=True, docker_endpoint=None, docker_env=None):
     if use_native:
         return run_cmd(
             ["bash", "-ceu", script],
@@ -489,13 +630,15 @@ def run_crypto_bash(crypto_dir, script, *, use_native, check=True):
         )
     mount_src = str(Path(crypto_dir).resolve()).replace("\\", "/")
     return run_cmd(
-        [
-            "docker", "run", "--rm", "--network", "none", "--cap-drop", "ALL",
+        docker_cmd(
+            docker_endpoint,
+            "run", "--rm", "--network", "none", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--entrypoint", "/bin/bash",
             "--mount", f"type=bind,source={mount_src},target=/work/crypto",
             "-e", "CRYPTO_DIR=/work/crypto",
             "ishonch-recovery-gates:local", "-ceu", script,
-        ],
+        ),
+        env=docker_env,
         timeout=120,
         check=check,
     )
@@ -553,17 +696,18 @@ def docker_endpoint_host():
     ).stdout.strip()
 
 
-def docker_engine_info():
-    raw = run_cmd(["docker", "info", "--format", "{{json .}}"], timeout=30).stdout.strip()
+def docker_engine_info(docker_endpoint=None, *, docker_env=None):
+    raw = run_cmd(
+        docker_cmd(docker_endpoint, "info", "--format", "{{json .}}"),
+        env=docker_env,
+        timeout=30,
+    ).stdout.strip()
     return json.loads(raw)
 
 
 def verify_dedicated_docker_engine(endpoint, engine_info, before_docker):
     """Fail closed on remote, non-Linux, Docker Desktop, or non-empty engines."""
-    if not re.fullmatch(r"unix:///[^\s]+", endpoint or ""):
-        raise RuntimeError(
-            f"dedicated local Unix-socket Docker endpoint required (got {endpoint!r})"
-        )
+    verify_local_docker_endpoint(endpoint)
     os_type = str(engine_info.get("OSType") or "").lower()
     operating_system = str(engine_info.get("OperatingSystem") or "")
     if os_type != "linux":
@@ -592,97 +736,146 @@ def check_no_resource_conflicts(before_docker, project_ids, network_names):
         raise RuntimeError("pre-existing Docker resource conflicts with rehearsal identifiers: " + ", ".join(conflicts))
 
 
-def stop_and_remove_owned_project(workdir, project_id, *, before_docker, started_projects, created_networks):
-    """Remove ONLY Docker resources created by this run; never abort remaining cleanup on error/timeout."""
+def stop_and_remove_owned_project(
+    workdir,
+    project_id,
+    *,
+    before_docker,
+    started_projects,
+    created_networks,
+    docker_endpoint=None,
+    docker_env=None,
+):
+    """Remove ONLY Docker resources created by this run; treat ANY failed check as cleanup failure."""
     before_containers = set(before_docker["containers"])
     before_volumes = set(before_docker["volumes"])
     before_networks = set(before_docker["networks"])
+    owned_created_networks = [net for net in sorted(created_networks) if net not in before_networks]
     errors = []
 
-    def safe(label, args, timeout=30):
+    def safe(label, args, *, timeout=30, env=docker_env):
         try:
-            return run_cmd(args, check=False, timeout=timeout)
+            return run_cmd(args, check=False, env=env, timeout=timeout)
         except (subprocess.TimeoutExpired, OSError, RuntimeError) as exc:
             errors.append(f"{label}: {type(exc).__name__}")
             return None
 
+    def safe_list(label, args, *, timeout=30):
+        res = safe(label, args, timeout=timeout)
+        if res is None:
+            return None
+        if res.returncode != 0:
+            errors.append(f"{label}: exit={res.returncode}")
+            return None
+        return [line.strip() for line in res.stdout.splitlines() if line.strip()]
+
     label_filter = f"label=com.supabase.cli.project={project_id}"
+    exact_db_vol = f"supabase_db_{project_id}"
     if project_id in started_projects:
         if workdir and Path(workdir).exists():
             safe("supabase-stop", ["supabase", "stop", "--workdir", str(workdir), "--no-backup"], timeout=90)
 
-        ps_res = safe(
+        ps_lines = safe_list(
             "docker-ps",
-            ["docker", "ps", "-a", "--filter", label_filter, "--format", "{{.ID}}\t{{.Names}}"],
+            docker_cmd(docker_endpoint, "ps", "-a", "--filter", label_filter, "--format", "{{.ID}}\t{{.Names}}"),
         )
-        if ps_res is not None:
+        if ps_lines is not None:
             owned_container_ids = []
-            for line in ps_res.stdout.splitlines():
+            for line in ps_lines:
                 if "\t" not in line:
                     continue
                 cid, cname = line.split("\t", 1)
                 if cname not in before_containers:
                     owned_container_ids.append(cid)
             if owned_container_ids:
-                rm_res = safe("docker-rm", ["docker", "rm", "-f", *owned_container_ids])
+                rm_res = safe("docker-rm", docker_cmd(docker_endpoint, "rm", "-f", *owned_container_ids))
                 if rm_res is not None and rm_res.returncode != 0:
                     errors.append(f"docker-rm: exit={rm_res.returncode}")
 
-        vol_res = safe("docker-volume-ls", ["docker", "volume", "ls", "-q", "--filter", label_filter])
-        v_names = vol_res.stdout.split() if vol_res is not None else []
-        exact_db_vol = f"supabase_db_{project_id}"
-        if exact_db_vol not in before_volumes:
-            probe_vol = safe("docker-volume-inspect", ["docker", "volume", "inspect", exact_db_vol])
-            if probe_vol is not None and probe_vol.returncode == 0 and exact_db_vol not in v_names:
-                v_names.append(exact_db_vol)
-        owned_volumes = [v for v in v_names if v not in before_volumes]
+        v_label = safe_list(
+            "docker-volume-ls",
+            docker_cmd(docker_endpoint, "volume", "ls", "-q", "--filter", label_filter),
+        )
+        v_all = safe_list(
+            "docker-volume-ls-all",
+            docker_cmd(docker_endpoint, "volume", "ls", "-q"),
+        )
+        v_names = set(v_label or ())
+        if v_all is not None and exact_db_vol in v_all:
+            v_names.add(exact_db_vol)
+        owned_volumes = sorted(v for v in v_names if v not in before_volumes)
         if owned_volumes:
-            vrm_res = safe("docker-volume-rm", ["docker", "volume", "rm", *owned_volumes])
+            vrm_res = safe("docker-volume-rm", docker_cmd(docker_endpoint, "volume", "rm", *owned_volumes))
             if vrm_res is not None and vrm_res.returncode != 0:
                 errors.append(f"docker-volume-rm: exit={vrm_res.returncode}")
 
-        net_res = safe(
+        label_nets = safe_list(
             "docker-network-ls",
-            ["docker", "network", "ls", "--filter", label_filter, "--format", "{{.Name}}"],
+            docker_cmd(docker_endpoint, "network", "ls", "--filter", label_filter, "--format", "{{.Name}}"),
         )
-        if net_res is not None:
-            for net in net_res.stdout.splitlines():
-                net = net.strip()
-                if net and net not in before_networks:
-                    nrm_res = safe(f"docker-network-rm:{net}", ["docker", "network", "rm", net])
+        if label_nets is not None:
+            for net in label_nets:
+                if net not in before_networks:
+                    nrm_res = safe(f"docker-network-rm:{net}", docker_cmd(docker_endpoint, "network", "rm", net))
                     if nrm_res is not None and nrm_res.returncode != 0:
                         errors.append(f"docker-network-rm:{net}: exit={nrm_res.returncode}")
 
-    for net in sorted(created_networks):
-        if net in before_networks:
-            continue
-        insp = safe(f"docker-network-inspect:{net}", ["docker", "network", "inspect", net])
-        if insp is not None and insp.returncode == 0:
-            nrm = safe(f"docker-network-rm:{net}", ["docker", "network", "rm", net])
-            if nrm is not None and nrm.returncode != 0:
-                errors.append(f"docker-network-rm:{net}: exit={nrm.returncode}")
+    if owned_created_networks:
+        all_nets = safe_list(
+            "docker-network-ls-all",
+            docker_cmd(docker_endpoint, "network", "ls", "--format", "{{.Name}}"),
+        )
+        if all_nets is not None:
+            existing_nets = set(all_nets)
+            for net in owned_created_networks:
+                if net in existing_nets:
+                    nrm = safe(f"docker-network-rm:{net}", docker_cmd(docker_endpoint, "network", "rm", net))
+                    if nrm is not None and nrm.returncode != 0:
+                        errors.append(f"docker-network-rm:{net}: exit={nrm.returncode}")
 
-    # Confirm removal succeeded before caller can treat project/networks as cleared.
+    # Confirm removal succeeded using ONLY successful (exit=0) inventory reads.
     if project_id in started_projects:
-        rem_c = safe(
+        rem_c = safe_list(
             "verify-containers-gone",
-            ["docker", "ps", "-a", "--filter", label_filter, "--format", "{{.Names}}"],
+            docker_cmd(docker_endpoint, "ps", "-a", "--filter", label_filter, "--format", "{{.Names}}"),
         )
         if rem_c is not None:
-            leftover = [c.strip() for c in rem_c.stdout.splitlines() if c.strip() and c.strip() not in before_containers]
+            leftover = [c for c in rem_c if c not in before_containers]
             if leftover:
                 errors.append("leftover-containers:" + ",".join(leftover))
-        rem_v = safe("verify-volumes-gone", ["docker", "volume", "ls", "-q", "--filter", label_filter])
+        rem_v = safe_list(
+            "verify-volumes-gone",
+            docker_cmd(docker_endpoint, "volume", "ls", "-q", "--filter", label_filter),
+        )
         if rem_v is not None:
-            leftover = [v for v in rem_v.stdout.split() if v not in before_volumes]
+            leftover = [v for v in rem_v if v not in before_volumes]
             if leftover:
                 errors.append("leftover-volumes:" + ",".join(leftover))
-    for net in sorted(created_networks):
-        if net in before_networks:
-            continue
-        rem_n = safe(f"verify-network-gone:{net}", ["docker", "network", "inspect", net])
-        if rem_n is not None and rem_n.returncode == 0:
-            errors.append(f"leftover-network:{net}")
+        rem_v_all = safe_list(
+            "verify-exact-volume-gone",
+            docker_cmd(docker_endpoint, "volume", "ls", "-q"),
+        )
+        if rem_v_all is not None and exact_db_vol not in before_volumes and exact_db_vol in rem_v_all:
+            errors.append(f"leftover-volume:{exact_db_vol}")
+        rem_label_n = safe_list(
+            "verify-label-networks-gone",
+            docker_cmd(docker_endpoint, "network", "ls", "--filter", label_filter, "--format", "{{.Name}}"),
+        )
+        if rem_label_n is not None:
+            leftover = [n for n in rem_label_n if n not in before_networks]
+            if leftover:
+                errors.append("leftover-networks:" + ",".join(leftover))
+
+    if owned_created_networks:
+        rem_all_n = safe_list(
+            "verify-created-networks-gone",
+            docker_cmd(docker_endpoint, "network", "ls", "--format", "{{.Name}}"),
+        )
+        if rem_all_n is not None:
+            remaining_nets = set(rem_all_n)
+            for net in owned_created_networks:
+                if net in remaining_nets:
+                    errors.append(f"leftover-network:{net}")
 
     return len(errors) == 0, errors
 
@@ -698,6 +891,8 @@ def finalize_cleanup(
     started_projects,
     created_src_networks,
     created_tgt_networks,
+    docker_endpoint=None,
+    docker_env=None,
 ):
     """Run every cleanup stage independently so one timeout/error never skips remaining cleanup."""
     errors = []
@@ -712,6 +907,8 @@ def finalize_cleanup(
                 before_docker=before_docker,
                 started_projects=started_projects,
                 created_networks=nets,
+                docker_endpoint=docker_endpoint,
+                docker_env=docker_env,
             )
             if not ok:
                 errors.extend(f"{label}/{err}" for err in step_errors)
@@ -730,7 +927,7 @@ def finalize_cleanup(
 
     inv_diff = None
     try:
-        after_docker = docker_snapshot()
+        after_docker = docker_snapshot(docker_endpoint, docker_env=docker_env)
         inv_diff = diff_inventory(before_docker, after_docker)
         if not inv_diff["exactMatch"]:
             errors.append("docker_inventory: before/after mismatch")
@@ -766,6 +963,35 @@ def rehearse(profile_name, run_id, source_port, target_port):
     if cli_ver != pins["SUPABASE_CLI_VERSION"]:
         raise RuntimeError(f"supabase CLI {cli_ver} != pinned {pins['SUPABASE_CLI_VERSION']}")
 
+    # Reject remote or non-Unix Docker endpoints BEFORE contacting any daemon,
+    # then pin every Docker, Supabase, and child gate invocation to that socket.
+    docker_endpoint = verify_local_docker_endpoint(docker_endpoint_host())
+    docker_env = build_pinned_docker_env(docker_endpoint)
+    with pinned_process_docker_env(docker_env):
+        return _rehearse_pinned(
+            profile,
+            profile_name,
+            pins,
+            cli_ver,
+            run_id,
+            source_port,
+            target_port,
+            docker_endpoint,
+            docker_env,
+        )
+
+
+def _rehearse_pinned(
+    profile,
+    profile_name,
+    pins,
+    cli_ver,
+    run_id,
+    source_port,
+    target_port,
+    docker_endpoint,
+    docker_env,
+):
     src_project = f"ishonch-src-drill-{run_id}"
     tgt_project = f"ishonch-full-drill-{run_id}"
     tgt_internal_net = f"ishonch-full-internal-{run_id}"
@@ -776,9 +1002,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
 
     # Verify dedicated local Linux Unix-socket Docker engine and zero pre-existing
     # resources BEFORE pulling images, creating temporary files, or mutating Docker.
-    docker_endpoint = docker_endpoint_host()
-    engine_info = docker_engine_info()
-    before_docker = docker_snapshot()
+    engine_info = docker_engine_info(docker_endpoint, docker_env=docker_env)
+    before_docker = docker_snapshot(docker_endpoint, docker_env=docker_env)
     verify_dedicated_docker_engine(docker_endpoint, engine_info, before_docker)
     check_no_resource_conflicts(
         before_docker,
@@ -788,23 +1013,14 @@ def rehearse(profile_name, run_id, source_port, target_port):
 
     use_native_age = has_native_age_v131()
     if not use_native_age:
-        gate_probe = run_cmd(["docker", "image", "inspect", "ishonch-recovery-gates:local"], check=False, timeout=30)
-        if gate_probe.returncode != 0:
-            run_cmd(
-                [
-                    "docker", "build", "--platform", "linux/amd64",
-                    "--file", str(ROOT / "supabase/recovery/workflow-gates.Dockerfile"),
-                    "--tag", "ishonch-recovery-gates:local",
-                    str(ROOT / "supabase/recovery"),
-                ],
-                timeout=300,
-            )
+        ensure_offline_gates_image(docker_endpoint, docker_env=docker_env)
 
-    pinned_images = ensure_pinned_images(pins)
+    pinned_images = ensure_pinned_images(pins, docker_endpoint=docker_endpoint, docker_env=docker_env)
     started_projects = set()
     created_src_networks = set()
     created_tgt_networks = set()
     cli_env = {
+        **docker_env,
         "SUPABASE_TELEMETRY_DISABLED": "1",
         "DO_NOT_TRACK": "1",
         "SUPABASE_INTERNAL_IMAGE_REGISTRY": "docker.io",
@@ -893,12 +1109,14 @@ def rehearse(profile_name, run_id, source_port, target_port):
         patch_supabase_config(src_dir / "supabase/config.toml", src_project, source_port, pins["TARGET_POSTGRES_MAJOR"])
         shutil.copytree(ROOT / "supabase/migrations", src_dir / "supabase/migrations", dirs_exist_ok=True)
         run_cmd(
-            [
-                "docker", "network", "create", "--driver", "bridge",
+            docker_cmd(
+                docker_endpoint,
+                "network", "create", "--driver", "bridge",
                 "--label", f"com.supabase.cli.project={src_project}",
                 "--opt", "com.docker.network.bridge.host_binding_ipv4=127.0.0.1",
                 src_bridge_net,
-            ],
+            ),
+            env=docker_env,
             timeout=30,
         )
         created_src_networks.add(src_bridge_net)
@@ -906,8 +1124,13 @@ def rehearse(profile_name, run_id, source_port, target_port):
         run_cmd(["supabase", "db", "start", "--workdir", str(src_dir), "--yes"], env=cli_env, timeout=240)
 
         # 2. Seed unique synthetic rows across ALL 20 tables.
-        psql_exec(src_container, SYNTHETIC_SEED_SQL)
-        src_counts, src_digests = capture_relation_parity(src_container, profile["relations"])
+        psql_exec(src_container, SYNTHETIC_SEED_SQL, docker_endpoint=docker_endpoint, docker_env=docker_env)
+        src_counts, src_digests = capture_relation_parity(
+            src_container,
+            profile["relations"],
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
+        )
         if not all(src_counts[rel] >= 1 for rel in profile["relations"]):
             raise RuntimeError("not all 20 relations populated in source")
         report["all20TablesNonEmptyInSource"] = True
@@ -917,9 +1140,17 @@ def rehearse(profile_name, run_id, source_port, target_port):
             src_container,
             (ROOT / "supabase/recovery/verify-managed-schema-live.sql").read_text(encoding="utf-8"),
             extra_args=("--single-transaction",),
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         report["sourceChecks"]["verifyManagedSchemaLive"] = True
-        psql_exec(src_container, rc.schedule_sql(profile, restore=False), extra_args=("--single-transaction",))
+        psql_exec(
+            src_container,
+            rc.schedule_sql(profile, restore=False),
+            extra_args=("--single-transaction",),
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
+        )
         report["sourceChecks"]["scheduleCheckSql"] = True
 
         run_cmd(
@@ -930,6 +1161,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
         src_migrations = psql_exec(
             src_container,
             "SELECT version FROM supabase_migrations.schema_migrations ORDER BY version;",
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         ) + "\n"
         expected_migrations = (export_plain / "expected-migrations.txt").read_text(encoding="ascii")
         if src_migrations != expected_migrations:
@@ -1010,6 +1243,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
             printf '%s\t%s\t%s\n' "$age_ver" "$(stat -c %s "$CRYPTO_DIR/supabase-backup.tar.age")" "$(cat "$CRYPTO_DIR/supabase-backup.tar.age.sha256")"
             """,
             use_native=use_native_age,
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         ).stdout.strip()
         age_ver, cipher_bytes, cipher_sha = enc_meta.split("\t")
         report["encryption"]["ageVersion"] = age_ver
@@ -1027,6 +1262,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
             before_docker=before_docker,
             started_projects=started_projects,
             created_networks=created_src_networks,
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         if not src_clean_ok:
             raise RuntimeError("source stack cleanup incomplete: " + "; ".join(src_clean_errors))
@@ -1040,6 +1277,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
             'age --decrypt --identity "$CRYPTO_DIR/wrong-identity.txt" --output "$CRYPTO_DIR/bad-wrong.tar" "$CRYPTO_DIR/supabase-backup.tar.age"',
             use_native=use_native_age,
             check=False,
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         if wrong_key.returncode == 0:
             raise RuntimeError("wrong age key unexpectedly decrypted bundle")
@@ -1054,6 +1293,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
             'printf "%s  %s\\n" "$(cat "$CRYPTO_DIR/supabase-backup.tar.age.sha256")" "$CRYPTO_DIR/corrupted.tar.age" | sha256sum --check --status',
             use_native=use_native_age,
             check=False,
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         if corrupt_sha_check.returncode == 0:
             raise RuntimeError("sha256sum --check unexpectedly accepted corrupted ciphertext")
@@ -1064,6 +1305,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
             'age --decrypt --identity "$CRYPTO_DIR/identity.txt" --output "$CRYPTO_DIR/bad-corrupt.tar" "$CRYPTO_DIR/corrupted.tar.age"',
             use_native=use_native_age,
             check=False,
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         if corrupt_age_check.returncode == 0:
             raise RuntimeError("age --decrypt unexpectedly accepted corrupted ciphertext")
@@ -1083,6 +1326,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
               "$CRYPTO_DIR/supabase-backup.tar.age"
             """,
             use_native=use_native_age,
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         decrypted_tar = crypto_dir / "decrypted.tar"
         expected_members = sorted([*EXPECTED_BUNDLE_FILES, "manifest.json"])
@@ -1152,12 +1397,14 @@ def rehearse(profile_name, run_id, source_port, target_port):
 
         # 6. Start clean empty isolated target with exact workflow loopback + internal-network isolation.
         run_cmd(
-            [
-                "docker", "network", "create", "--driver", "bridge",
+            docker_cmd(
+                docker_endpoint,
+                "network", "create", "--driver", "bridge",
                 "--label", f"com.supabase.cli.project={tgt_project}",
                 "--opt", "com.docker.network.bridge.host_binding_ipv4=127.0.0.1",
                 tgt_bridge_net,
-            ],
+            ),
+            env=docker_env,
             timeout=30,
         )
         created_tgt_networks.add(tgt_bridge_net)
@@ -1167,7 +1414,9 @@ def rehearse(profile_name, run_id, source_port, target_port):
         started_projects.add(tgt_project)
         run_cmd(["supabase", "db", "start", "--workdir", str(tgt_dir), "--yes"], env=cli_env, timeout=240)
 
-        target_info = json.loads(run_cmd(["docker", "inspect", tgt_container], timeout=30).stdout)[0]
+        target_info = json.loads(
+            run_cmd(docker_cmd(docker_endpoint, "inspect", tgt_container), env=docker_env, timeout=30).stdout
+        )[0]
         if target_info["Config"]["Image"] != pins["SUPABASE_POSTGRES_IMAGE"]:
             raise RuntimeError("target container image tag mismatch")
         port_map = target_info["NetworkSettings"]["Ports"].get("5432/tcp") or []
@@ -1177,13 +1426,15 @@ def rehearse(profile_name, run_id, source_port, target_port):
 
         # Move empty target container to internal-only Docker network and detach
         # the CLI NAT bridge BEFORE copying any decrypted data into the container.
-        run_cmd(["docker", "network", "create", "--internal", tgt_internal_net], timeout=30)
+        run_cmd(docker_cmd(docker_endpoint, "network", "create", "--internal", tgt_internal_net), env=docker_env, timeout=30)
         created_tgt_networks.add(tgt_internal_net)
-        run_cmd(["docker", "network", "connect", tgt_internal_net, tgt_container], timeout=30)
+        run_cmd(docker_cmd(docker_endpoint, "network", "connect", tgt_internal_net, tgt_container), env=docker_env, timeout=30)
         for old_net in list(target_info["NetworkSettings"]["Networks"].keys()):
             if old_net != tgt_internal_net:
-                run_cmd(["docker", "network", "disconnect", old_net, tgt_container], timeout=30)
-        isolated_info = json.loads(run_cmd(["docker", "inspect", tgt_container], timeout=30).stdout)[0]
+                run_cmd(docker_cmd(docker_endpoint, "network", "disconnect", old_net, tgt_container), env=docker_env, timeout=30)
+        isolated_info = json.loads(
+            run_cmd(docker_cmd(docker_endpoint, "inspect", tgt_container), env=docker_env, timeout=30).stdout
+        )[0]
         isolated_nets = list(isolated_info["NetworkSettings"]["Networks"].keys())
         if isolated_nets != [tgt_internal_net]:
             raise RuntimeError(f"target not isolated to internal network: {isolated_nets}")
@@ -1203,10 +1454,17 @@ def rehearse(profile_name, run_id, source_port, target_port):
             tgt_container,
             "ALTER SYSTEM SET cron.launch_active_jobs = 'off'; SELECT pg_reload_conf();",
             user="supabase_admin",
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         cron_state = ""
         for _ in range(10):
-            cron_state = psql_exec(tgt_container, "SELECT current_setting('cron.launch_active_jobs');")
+            cron_state = psql_exec(
+                tgt_container,
+                "SELECT current_setting('cron.launch_active_jobs');",
+                docker_endpoint=docker_endpoint,
+                docker_env=docker_env,
+            )
             if cron_state == "off":
                 break
             time.sleep(0.5)
@@ -1224,13 +1482,26 @@ def rehearse(profile_name, run_id, source_port, target_port):
         (restore_plain / "profile-security.sql").write_text(rc.security_sql(profile), encoding="utf-8", newline="\n")
         (restore_plain / "profile-schedules.sql").write_text(rc.schedule_sql(profile, restore=True), encoding="utf-8", newline="\n")
 
-        run_cmd(["docker", "exec", tgt_container, "install", "-d", "-m", "0700", "-o", "postgres", "-g", "postgres", "/tmp/restore"], timeout=30)
-        run_cmd(["docker", "cp", f"{restore_plain}/.", f"{tgt_container}:/tmp/restore/"], timeout=60)
-        run_cmd(["docker", "exec", tgt_container, "chown", "-R", "postgres:postgres", "/tmp/restore"], timeout=30)
+        run_cmd(
+            docker_cmd(docker_endpoint, "exec", tgt_container, "install", "-d", "-m", "0700", "-o", "postgres", "-g", "postgres", "/tmp/restore"),
+            env=docker_env,
+            timeout=30,
+        )
+        run_cmd(
+            docker_cmd(docker_endpoint, "cp", f"{restore_plain}/.", f"{tgt_container}:/tmp/restore/"),
+            env=docker_env,
+            timeout=60,
+        )
+        run_cmd(
+            docker_cmd(docker_endpoint, "exec", tgt_container, "chown", "-R", "postgres:postgres", "/tmp/restore"),
+            env=docker_env,
+            timeout=30,
+        )
 
         run_cmd(
-            [
-                "docker", "exec", "--user", "postgres", tgt_container,
+            docker_cmd(
+                docker_endpoint,
+                "exec", "--user", "postgres", tgt_container,
                 "psql", "--dbname", "postgres", "--single-transaction", "--set", "ON_ERROR_STOP=1",
                 "--file", "/tmp/restore/roles-idempotent.sql",
                 "--file", "/tmp/restore/prepare-isolated-target.sql",
@@ -1243,7 +1514,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
                 "--file", "/tmp/restore/history_schema.sql",
                 "--file", "/tmp/restore/history_data.sql",
                 "--file", "/tmp/restore/profile-schedules.sql",
-            ],
+            ),
+            env=docker_env,
             timeout=180,
         )
         report["restoreVerification"]["singleTransactionRestorePassed"] = True
@@ -1252,12 +1524,19 @@ def rehearse(profile_name, run_id, source_port, target_port):
         tgt_migrations = psql_exec(
             tgt_container,
             "SELECT version FROM supabase_migrations.schema_migrations ORDER BY version;",
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         ) + "\n"
         if tgt_migrations != expected_migrations or len(tgt_migrations.strip().splitlines()) != 38:
             raise RuntimeError("restored migration history mismatch")
         report["restoreVerification"]["migrationsExactMatch38"] = True
 
-        tgt_counts, tgt_digests = capture_relation_parity(tgt_container, profile["relations"])
+        tgt_counts, tgt_digests = capture_relation_parity(
+            tgt_container,
+            profile["relations"],
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
+        )
         expected_counts_text = (restore_plain / "expected-counts.txt").read_text(encoding="ascii")
         actual_counts_text = "".join(f"{rel}\t{tgt_counts[rel]}\n" for rel in profile["relations"])
         if actual_counts_text != expected_counts_text:
@@ -1270,11 +1549,13 @@ def rehearse(profile_name, run_id, source_port, target_port):
         report["restoreVerification"]["cellContentDigestsExactMatch20"] = True
 
         run_cmd(
-            [
-                "docker", "exec", "--user", "postgres", tgt_container,
+            docker_cmd(
+                docker_endpoint,
+                "exec", "--user", "postgres", tgt_container,
                 "psql", "--no-psqlrc", "--dbname", "postgres", "--single-transaction",
                 "--set", "ON_ERROR_STOP=1", "--file", "/tmp/restore/profile-security.sql",
-            ],
+            ),
+            env=docker_env,
             timeout=120,
         )
         report["restoreVerification"]["profileSecuritySqlPassed"] = True
@@ -1283,14 +1564,22 @@ def rehearse(profile_name, run_id, source_port, target_port):
             tgt_container,
             (ROOT / "supabase/recovery/verify-managed-schema-live.sql").read_text(encoding="utf-8"),
             extra_args=("--single-transaction",),
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         report["restoreVerification"]["verifyManagedSchemaLiveOnTargetPassed"] = True
 
-        psql_exec(tgt_container, extract_drill_catalog_sql())
+        psql_exec(
+            tgt_container,
+            extract_drill_catalog_sql(),
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
+        )
         report["restoreVerification"]["workflowCatalogDoBlockPassed"] = True
 
         # Execute the REAL workflow CLI gates with full verify_isolation().
         drill_env = {
+            **docker_env,
             "DRILL_PROJECT_ID": tgt_project,
             "DRILL_INTERNAL_NETWORK": tgt_internal_net,
             "DRILL_DB_PORT": str(target_port),
@@ -1308,7 +1597,7 @@ def rehearse(profile_name, run_id, source_port, target_port):
         report["restoreVerification"]["restoredAuthorizationCliPassed"] = True
         report["restoreVerification"]["restoredAuthorizationAssertions"] = int(auth_match.group(1))
 
-        # Run remaining 2 pgTAP suites (346 + 13 = 359 -> 661 total).
+        # Run remaining 2 pgTAP suites (346 + 13 = 359 -> 661 total) under pinned os.environ.
         extra_tests = [
             ((ROOT / "supabase/tests" / fname).read_text(encoding="utf-8"), expected)
             for fname, expected in EXTRA_PGTAP_SUITES
@@ -1333,7 +1622,12 @@ def rehearse(profile_name, run_id, source_port, target_port):
         report["restoreVerification"]["lifecycleCollisionAssertions"] = int(lfr_match.group(1))
 
         # Re-verify ALL 20 tables' cell-for-cell SHA-256 digests AFTER every pgTAP & collision rollback.
-        _, post_digests = capture_relation_parity(tgt_container, profile["relations"])
+        _, post_digests = capture_relation_parity(
+            tgt_container,
+            profile["relations"],
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
+        )
         if post_digests != src_digests:
             mismatched = [r for r in profile["relations"] if post_digests[r] != src_digests[r]]
             raise RuntimeError("post-pgTAP cell-for-cell digest drift: " + ", ".join(mismatched))
@@ -1351,6 +1645,8 @@ def rehearse(profile_name, run_id, source_port, target_port):
             started_projects=started_projects,
             created_src_networks=created_src_networks,
             created_tgt_networks=created_tgt_networks,
+            docker_endpoint=docker_endpoint,
+            docker_env=docker_env,
         )
         report["overallPass"] = (
             fatal_error is None
