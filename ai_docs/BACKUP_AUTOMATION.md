@@ -1,21 +1,22 @@
-# Backup Automation (Supabase Free pilot)
+# Backup Automation (Supabase Free pilot — `production-38`)
 
-Status: **HOLD candidate, not enabled and not restore-proven**. The workflows
-exist in this branch for review. Do not add credentials until the workflow
-trust boundary and required-review rules for the whole `.github/workflows/`
-are enforced. A zero-approval ruleset and the CODEOWNERS file alone do not
-satisfy this gate. Before secrets are added, either a second independent
-trusted reviewer must be enrolled with required CODEOWNER approval (at least
-one approval and stale-approval dismissal), or a protected GitHub Environment
-with manual approval must gate every secret-bearing job. A protected
-Environment also means scheduled runs wait for approval; that tradeoff must be
-accepted explicitly.
+Status: **HOLD candidate — NOT ENABLED in production**. The `production-38`
+recovery contract and encrypted restore path have been verified locally on
+synthetic data, while hosted GitHub Actions export/restore remain
+**NOT ENABLED / NOT VERIFIED**. Do not add credentials until the workflow trust
+boundary and required-review rules for the whole `.github/workflows/` are
+enforced. A zero-approval ruleset and the `CODEOWNERS` file alone do not satisfy
+this gate. Before secrets are added, either a second independent trusted
+reviewer must be enrolled with required CODEOWNER approval (at least one
+approval and stale-approval dismissal), or a protected GitHub Environment with
+manual approval must gate every secret-bearing job. A protected Environment also
+means scheduled runs wait for approval; that tradeoff must be accepted
+explicitly.
 
-Supabase recommends that Free projects regularly export with `supabase db
-dump` and keep off-site copies. The current official logical migration format
-is three files: roles, schema and data. This candidate follows that format
-instead of running raw `pg_dump` against the managed `auth` and `storage`
-schemas.
+Supabase recommends that Free projects regularly export with `supabase db dump`
+and keep off-site copies. The current official logical migration format is three
+files: roles, schema and data. This candidate follows that format instead of
+running raw `pg_dump` against the managed `auth` and `storage` schemas.
 
 Official references:
 
@@ -26,273 +27,278 @@ Official references:
 - <https://github.com/supabase/cli/releases/tag/v2.104.0>
 - <https://github.com/FiloSottile/age/releases/tag/v1.3.1>
 
-## Workflow design
+## Workflow design and `production-38` profile
 
-| Workflow                                                              | Schedule (UTC)                            | Boundary                                                                                                                                                                                                                      |
-| --------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Supabase Encrypted Backup` (`.github/workflows/backup.yml`)          | HOLD: manual only; planned daily 03:17    | pinned Supabase CLI exports roles/schema/data plus migration history and the reviewed managed-schema hook; the privacy-safe bundle is encrypted to a code-pinned age recipient, retained for 90 days and separately read back |
-| `Backup Restore Drill` (`.github/workflows/backup-restore-drill.yml`) | HOLD: manual only; planned Saturday 05:23 | accepts only a successful main-branch artifact no older than 36 hours, authenticates it with age, restores into a pinned Supabase-local database and emits only PASS/FAIL assertions                                          |
+Only the single explicitly reviewed profile `production-38` (defined in
+`supabase/recovery/baselines.json`) is accepted; there is no automatic head
+detection:
 
-Both cron triggers stay disabled in this HOLD candidate. The reviewed
-enablement PR may add the documented non-zero-minute schedules only after all
+- **38 migrations** with exact LF-normalized UTF-8 SHA-256 hashes;
+- **20 relations** (`13` `public.*` + `4` `private.*` + `3` managed:
+  `auth.users`, `storage.buckets`, `storage.objects`);
+- **5 restricted tables** with explicit table, column, PostgreSQL 17 `MAINTAIN`,
+  and `PUBLIC` ACL checks (`private.telegram_family_notification_claims`,
+  `private.telegram_media_provider_consents`, `private.telegram_update_leaders`,
+  `private.web_ocr_ticket_claims`, `public.telegram_webhook_updates`);
+- **30 RPCs** checked for exact signature, `SECURITY DEFINER`/`INVOKER`,
+  `search_path`, and `anon`/`authenticated`/`service_role`/`PUBLIC` `EXECUTE`
+  privileges;
+- **2 `pg_cron` schedules** (`ishonch_prune_app_retention_daily` and
+  `ishonch_prune_web_ocr_ticket_claims_hourly`);
+- **8 hash-pinned rollback-isolated `authorization_tests`** (`302` pgTAP
+  assertions run automatically by `backup-restore-drill.yml`).
+
+| Workflow                                                              | Trigger (current HOLD state)                                                 | Boundary                                                                                                                                                                                                                           |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Supabase Encrypted Backup` (`.github/workflows/backup.yml`)          | HOLD: `workflow_dispatch` only (`production-38`); planned daily 03:17 UTC    | pinned Supabase CLI exports roles/schema/data plus migration history and the reviewed managed-schema hook; the privacy-safe v4 bundle is encrypted to a code-pinned `age` recipient, retained for 90 days and separately read back |
+| `Backup Restore Drill` (`.github/workflows/backup-restore-drill.yml`) | HOLD: `workflow_dispatch` only (`production-38`); planned Saturday 05:23 UTC | accepts only a successful `main`-branch artifact no older than 36 hours, authenticates it with `age`, restores into a pinned internal-only Supabase-local database and emits PASS/FAIL evidence only                               |
+| `Backup Recovery Gates` (`.github/workflows/backup-recovery-ci.yml`)  | PR / push to `main` (credential-free)                                        | runs offline Python unit tests (`supabase/recovery/test_*.py`) and networkless read-only Linux container workflow-gate regressions (`local_workflow_rehearsal.py`); does **not** run database restore or host firewall checks      |
+
+Both cron triggers stay disabled in this HOLD candidate. **Enablement note for
+future `schedule:` activation:** simply adding a `schedule:` trigger block is
+not sufficient — the current HOLD job guards require
+`inputs.recovery_profile == 'production-38'` (which is only populated on
+`workflow_dispatch`, so `schedule` events would be skipped). A future reviewed
+enablement PR must explicitly update both the job `if:` condition and the
+`RECOVERY_PROFILE` default for `github.event_name == 'schedule'` only after all
 approval, Environment, recipient, freshness-monitor and first-proof gates are
-ready; known-red scheduled runs would weaken the monitoring signal.
+ready.
 
-The export uses the official commands:
+The export uses the official five-file CLI split:
 
 ```bash
-supabase db dump --db-url "$SUPABASE_DB_URL" -f roles.sql --role-only
-supabase db dump --db-url "$SUPABASE_DB_URL" -f schema.sql --keep-comments
-supabase db dump --db-url "$SUPABASE_DB_URL" -f data.sql \
+supabase db dump --db-url "$SUPABASE_DB_URL" --file roles.sql --role-only --keep-comments
+supabase db dump --db-url "$SUPABASE_DB_URL" --file schema.sql --keep-comments
+supabase db dump --db-url "$SUPABASE_DB_URL" --file data.sql \
   --data-only --use-copy \
-  -x "storage.buckets_vectors" -x "storage.vector_indexes"
-supabase db dump --db-url "$SUPABASE_DB_URL" -f history_schema.sql \
+  --exclude "storage.buckets_vectors" --exclude "storage.vector_indexes" \
+  --exclude "auth.migrations" --exclude "storage.migrations" \
+  --exclude "supabase_functions.migrations"
+supabase db dump --db-url "$SUPABASE_DB_URL" --file history_schema.sql \
   --schema supabase_migrations --keep-comments
-supabase db dump --db-url "$SUPABASE_DB_URL" -f history_data.sql \
+supabase db dump --db-url "$SUPABASE_DB_URL" --file history_data.sql \
   --schema supabase_migrations --data-only --use-copy
 ```
 
 The workflow does not delegate CLI installation to `supabase/setup-cli`: that
-action downloads an asset but does not independently verify its checksum. It
-downloads the official Supabase CLI `2.104.0` Linux amd64 tarball directly and
-checks the release-published SHA-256
-`5a0d3ed4c44f8dd1520a9f7ed6309aa60ef3bfc6c5483c9b11f70191f9d74cf6`
-before installation. The age v1.3.1 Linux amd64 tarball is likewise downloaded
-from its immutable official release URL and checked against the release asset's
-published SHA-256
-`bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377`.
-age provides authenticated encryption; modifying the ciphertext, encrypted
-manifest or SQL files causes decryption or manifest verification to fail. The
-unkeyed outer SHA-256 is transport-corruption evidence only and is not
-presented as authentication. age does not prove who created a new ciphertext:
-the public recipient lets anyone encrypt to it. Origin trust comes from the
-immutable artifact attached to the reviewed successful `main` workflow run;
-this is why workflow review protection is part of the cryptographic boundary.
+action downloads an asset without independently verifying its checksum. Instead
+it downloads the official Supabase CLI `2.104.0` Linux amd64 tarball directly,
+checks the release SHA-256
+`5a0d3ed4c44f8dd1520a9f7ed6309aa60ef3bfc6c5483c9b11f70191f9d74cf6`, and installs
+both `supabase` and `supabase-go`. The `age` `v1.3.1` Linux amd64 tarball is
+likewise checksum-verified against
+`bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377`. `age`
+provides authenticated encryption: modifying the ciphertext, encrypted manifest,
+or SQL members causes decryption or manifest verification to fail. The unkeyed
+outer `.sha256` file is transport-corruption evidence only, not authentication.
+Origin trust comes from the immutable artifact attached to the reviewed
+successful `main` workflow run.
 
-The age recipient is public but integrity-sensitive: redirecting it would
-exfiltrate a newly encrypted dump. It is pinned directly in the reviewed
-workflow, never read from a mutable repository variable. The HOLD placeholder
-must be replaced by the exact offline-derived `age1...` recipient in a reviewed
-commit before a job can receive the production URL.
+The `age` recipient is public but integrity-sensitive: redirecting it would
+exfiltrate a newly encrypted dump. It is pinned directly in `backup.yml` (never
+read from a mutable repository variable). The HOLD placeholder
+`UNCONFIGURED_REVIEWED_RECIPIENT_REQUIRED` must be replaced with the exact
+offline-derived `age1...` recipient in a reviewed PR before a job can receive
+the production URL.
 
-The Supabase CLI uses a containerized database toolchain for `db dump`. Before
-the production database URL is made available to any step, the workflow forces
-the internal image registry to `docker.io`, pulls
-`supabase/postgres:17.6.1.132` by immutable OCI index digest, verifies its
-linux/amd64 image ID and tags that verified image for the CLI. The restore job
-does the same before the age identity is made available. This keeps mutable
-registry tags and unauthenticated installer behavior outside both secret-bearing
-steps.
+The Supabase CLI uses containerized PostgreSQL and local init images. Before any
+secret-bearing step runs, the workflows set `SUPABASE_INTERNAL_IMAGE_REGISTRY`
+to `docker.io`, pull the immutable OCI index digests, verify their linux/amd64
+image identities via `supabase/recovery/verify_image_identity.py`, and select
+those exact tags in private CLI caches via
+`supabase/recovery/prepare_cli_versions.py`:
 
-The restore initialization additionally uses CLI-pinned Realtime, Storage and
-Auth migration images with local database credentials. All three are pulled by
-immutable OCI digest, checked by exact linux/amd64 image ID and retagged before
-the age identity is exposed; their tag-to-ID mappings are asserted again after
-initialization and before decrypted data is copied.
+- PostgreSQL: `supabase/postgres:17.11.0.003` (`sha256:7374d196da7e301512cc5329e18040e0f7bb856287b323777cdadecccbc6c7e4`)
+- Auth: `supabase/gotrue:v2.194.0` (`sha256:2b352c02adf11a2025cd5993c246ef85db73743553c39194d2b1862d1cc4d1fd`)
+- Storage: `supabase/storage-api:v1.67.15` (`sha256:545a5a40307a75a398417e0c74644c8e13afde3146a1252b66ab829db0a8191c`)
+- Realtime: `supabase/realtime:v2.102.1` (`sha256:2ebc237cc41d2c941683fffb7848aa40a5af662a1fe30fff5d99f58c7164d8d3`)
 
-Supabase CLI 2.104.0 can echo a nested raw URL parse error even when its outer
-error masks the password. Every `db dump` stdout/stderr byte is therefore
-redirected to a private `RUNNER_TEMP` log; only a generic failure annotation is
-public, and `if: always()` cleanup deletes the diagnostic with the plaintext.
+Supabase CLI `2.104.0` can echo a nested raw URL parse error even when its outer
+error masks the password. Every `db dump` stdout/stderr byte is redirected to a
+private `RUNNER_TEMP` log; only a bounded failure annotation is public, and
+`if: always()` cleanup deletes the diagnostic with the plaintext.
 
-The encrypted manifest contains only:
+The encrypted v4 manifest (`ishonch-guard-supabase-logical-backup/v4`) contains
+only:
 
-- format version;
-- pinned Supabase CLI version;
-- source PostgreSQL major;
-- reviewed GitHub repository, run, attempt and commit provenance (inside the
-  ciphertext, not in the public summary);
-- SHA-256 of the roles/schema/data files, migration-history pair, reviewed
-  managed-schema hook, expected migration inventory and the private count
-  inventory derived from the exact `data.sql` COPY sections.
+- format version, pinned Supabase CLI version, and source PostgreSQL major (`15` or `17`);
+- `recovery_profile` (`production-38`) and its content-bound `recovery_profile_sha256`;
+- reviewed GitHub repository, run ID, attempt, and commit SHA provenance;
+- SHA-256 digests of the 8 bundle files (`roles.sql`, `schema.sql`,
+  `managed-schema.sql`, `data.sql`, `history_schema.sql`, `history_data.sql`,
+  `expected-migrations.txt`, `expected-counts.txt`).
 
-The encrypted count inventory contains no values or identifiers, only exact
-per-relation row totals needed to detect an omitted or partial data replay. The
-manifest itself contains no row counts, project ref, database URL, account
-identifier or user data. Job output and summaries contain PASS/FAIL evidence
-only.
+## Restore isolation and verification scope
 
-## Restore isolation
-
-The drill does not use a stock `postgres` image. Pinned Supabase CLI `2.104.0`
-creates a clean PostgreSQL 17 Supabase-local database, including managed Auth
-and Storage schemas. The encrypted manifest must name an allowlisted logical
-dump source major (`15` or `17`); any other value fails closed. Supabase's
-official logical migration flow supports restoring an older logical dump into
-a newer PostgreSQL target. This candidate therefore restores either allowlisted
-source into the single pinned PostgreSQL 17 target; it does not claim binary or
-physical cross-major compatibility. The expected Supabase Postgres tag, OCI
-index digest, linux/amd64 image ID and running target major are asserted before
-production-derived data is copied into the container.
-
-Supabase CLI temporarily publishes its database port while it initializes the
-local services. Before decryption, the expected CLI bridge is pre-created with
-Docker's default host binding fixed to `127.0.0.1`; startup must prove the
-actual `5432/tcp` binding is exactly that address and port. Exact, run-tagged
-IPv4 and IPv6 `INPUT` plus `DOCKER-USER` DROP rules are also installed and
-verified before startup as defense in depth. If either firewall backend or
-chain is unavailable, the drill aborts before the age identity is exposed.
-After initialization, the database is moved to a Docker `--internal` network
-and detached from the CLI NAT network.
-Restore and verification use container-local `psql`; there is no production
-write path and no outbound integration credential in the job. The published
-port remains present but firewall-protected between start and container
-removal; cleanup must prove every resource in the unique CLI project namespace
-and all four IPv4/IPv6 rules are absent or fail the drill.
-
-The normal roles/schema/data export intentionally excludes managed Auth and
-Storage DDL. Ishonch Guard owns two triggers on `auth.users`, so the encrypted
-bundle includes the reviewed idempotent
-`supabase/recovery/managed-schema-hooks.sql`. It is applied after application
-schema and before data. The drill asserts both Auth triggers, the allowlist
-lifecycle trigger and their exact function bindings/enabled state. The
-official `supabase_migrations` schema/data pair is also encrypted, restored and
-compared privately with the ordered migration inventory from the same reviewed
-commit; future migration replay must not rely on a guessed snapshot head. The
-export brackets all five logical dumps with private live migration-history and
-managed-schema checks, and fails when normal migration or managed-schema drift
-occurs during that multi-file window.
+The restore drill creates a clean PostgreSQL 17 Supabase-local database,
+including managed Auth and Storage schemas. Before decryption, the expected CLI
+bridge is pre-created with `host_binding_ipv4=127.0.0.1` and four run-tagged
+IPv4/IPv6 `INPUT` + `DOCKER-USER` `DROP` rules are installed and verified. After
+initialization, the database container is attached to an internal-only Docker
+network (`$DRILL_INTERNAL_NETWORK`) and detached from all other networks before
+any decrypted data is copied in. Cleanup (`if: always()`) removes and verifies
+the absence of `$DRILL_ROOT`, every `$DRILL_PROJECT_ID` container/volume/network,
+the exact `$DRILL_INTERNAL_NETWORK` network, and all four IPv4/IPv6 firewall
+rules; any residue fails the drill.
 
 Before restored cron rows can commit, the drill sets and verifies
-`cron.launch_active_jobs=off`. This prevents the retained
-`ishonch_prune_app_retention_daily` job from mutating the snapshot while it is
-being validated.
+`cron.launch_active_jobs = off` via local `supabase_admin` so neither
+`ishonch_prune_app_retention_daily` nor
+`ishonch_prune_web_ocr_ticket_claims_hourly` can mutate the snapshot during
+verification.
 
-The restore is one transaction with `ON_ERROR_STOP=1`. The assertions require:
+The restore runs in one transaction (`--single-transaction --set ON_ERROR_STOP=1`)
+with idempotent roles, empty-target ACL preparation
+(`prepare-isolated-target.sql`), application schema, reviewed Auth triggers
+(`managed-schema-hooks.sql`), data (`session_replication_role = replica`),
+migration history, and trusted schedules (`schedule-restore-sql`).
 
-- Supabase roles (`anon`, `authenticated`, `authenticator`, `service_role`);
-- managed `auth.users` and `storage.objects` relations;
-- all 13 public and two private Ishonch Guard relations;
-- RLS enabled on all 13 public and two private application relations;
-- critical function/policy inventory and all three role-lifecycle triggers;
-- exact restored migration inventory;
-- exact encrypted-source versus restored row-count parity for all 15
-  application relations plus `auth.users`, `storage.objects` and
-  `storage.buckets`;
-- readable Auth and Storage metadata relations.
+### What the standard GitHub Actions drill verifies vs local rehearsal
 
-No real counts or identifiers are printed. The count file is derived from the
-same authenticated COPY snapshot, avoiding a second live count query that can
-race concurrent production writes; exact private comparison after restore is
-the data-load fidelity evidence.
+- **Standard `backup-restore-drill.yml` (hosted drill, once enabled):**
+  - exact `38/38` restored migration inventory;
+  - exact encrypted-source vs restored **row-count parity** across all **20
+    relations** (`13 public` + `4 private` + `auth.users`, `storage.buckets`,
+    `storage.objects` — **note:** `storage.objects` holds Storage object
+    metadata only, **not** binary file contents stored in Storage buckets);
+  - `recovery_contract.py security-sql` (RLS on all 17 application tables,
+    table/column/PG17 `MAINTAIN`/`PUBLIC` ACLs on all 5 restricted tables,
+    `SECURITY DEFINER`/`INVOKER`, `search_path`, and execute grants on all 30
+    RPCs, plus both `pg_cron` schedules);
+  - catalog/function/policy/trigger invariants and the direct-write boundary;
+  - **302 behavioral assertions across 8 hash-pinned pgTAP suites** via
+    `supabase/recovery/restored_authorization.py --profile production-38` (with
+    full container/image/internal-network isolation verification and rolled-back
+    fixtures).
+- **Reproducible in-repo local rehearsal (`supabase/recovery/rehearse_encrypted_restore.py`):**
+  Run from a clean checkout on a dedicated disposable local Linux Docker engine
+  with pinned Supabase CLI `2.104.0` and native `age v1.3.1` (`age`,
+  `age-keygen`, `sha256sum`, `bash`) on `PATH` (verified before any Docker call;
+  no container fallback, no production URLs, secrets, or Railway access
+  required):
+
+  ```bash
+  python3 -B supabase/recovery/rehearse_encrypted_restore.py --profile production-38
+  ```
+
+  In addition to the standard workflow checks above (`verify_image_identity.py`,
+  `prepare_cli_versions.py`, internal-only network isolation,
+  `restored_authorization.py` `302/302`), this synthetic rehearsal verifies:
+  - synthetic sentinel data across all **20/20 non-empty relations**;
+  - real `age v1.3.1` encryption with a disposable test keypair and deletion of
+    source plaintext before restore;
+  - **5 fail-closed negative tamper controls** (all asserted as non-zero command
+    exits: wrong `age` key, corrupted ciphertext `sha256sum --check`, corrupted
+    ciphertext `age --decrypt`, tampered `expected-counts.txt`, tampered
+    `recovery_profile_sha256`);
+  - **20/20 cell-for-cell canonical SHA-256 content parity** both immediately
+    after restore and again after all pgTAP rollbacks;
+  - **all 10/10 pgTAP suites (`661/661` assertions)** plus the **7-case P2
+    lifecycle collision matrix (`287/287` assertions)** via
+    `lifecycle_fixture_rehearsal.py`;
+  - **dedicated local Linux Docker preflight and fault-tolerant owned-only
+    cleanup**: verifies a local Unix-socket native Linux Docker endpoint
+    (`unix:///...`), refuses remote contexts, `Docker Desktop`, and any
+    non-empty engine before mutating state; cleanup runs each stage
+    independently (so a timeout on one stack never skips cleaning the second
+    stack or temporary keys), removes only resources created by the current run,
+    and verifies **bidirectional** Docker inventory parity (zero added and zero
+    removed containers, volumes, or networks).
 
 ## One-time enablement (owner, only after workflow protection)
 
 1. Enforce one of the independent approval gates stated at the top of this
-   document. The included CODEOWNERS ownership of the file itself, all
-   workflows, contract tests and recovery files is an audit signal only until
-   GitHub actually requires an independent CODEOWNER approval with stale
-   approvals dismissed.
+   document. `CODEOWNERS` ownership alone is an audit signal until GitHub
+   actually requires an independent CODEOWNER approval with stale approvals
+   dismissed.
 2. Implement an independent backup-freshness monitor in a different schedule
-   failure domain. It must alert when no successful backup exists within the
-   agreed threshold. Workflow failure notifications alone do not detect a
-   schedule that never started, and GitHub can disable scheduled workflows in
-   inactive public repositories.
-3. Download checksum-verified age v1.3.1 on a trusted workstation.
-4. Generate a dedicated key pair offline:
+   failure domain that alerts when no successful backup exists within the agreed
+   threshold.
+3. Download checksum-verified `age v1.3.1` on a trusted offline-capable
+   workstation and generate a dedicated key pair:
 
    ```bash
    age-keygen -o ishonch-backup-identity.txt
    age-keygen -y ishonch-backup-identity.txt
    ```
 
-5. Store the identity file in the owner's password manager and independent
-   recovery custody. Never put it in the repository, issue, chat or DB URL.
-6. Replace `UNCONFIGURED_REVIEWED_RECIPIENT_REQUIRED` in `backup.yml` with the
-   exact public `age1...` recipient through a reviewed PR. Do not use a mutable
-   repository variable for it.
-7. Create two GitHub Environments and choose **Selected branches and tags**
-   with the exact branch `main` for each deployment policy. Do not choose
-   **Protected branches only** while branch protection is absent: GitHub then
-   treats every branch as eligible. Verify that feature-branch manual dispatch
-   skips before environment/secrets. Keep the environments separate:
-   - `backup-export` contains only `SUPABASE_DB_URL`, the percent-encoded
-     Supabase session-pooler URL usable by
-     GitHub's IPv4 runner. The official full logical export needs privileged
-     access to Auth/Storage data, so treat this as a production credential.
-     The percent-encoding requirement comes directly from the official
-     `supabase db dump --db-url` reference; encode reserved characters in the
-     password before storing the complete URL.
-   - `backup-decrypt` contains only `BACKUP_AGE_IDENTITY`, the private age
-     identity used by authenticated read-back and restore jobs.
-     Do not create repository-level copies of either secret. Environment
-     selected-`main` restriction is mandatory even when branch review is enabled.
-     If Environment approval is the independent review gate, enable prevent
-     self-review and disallow administrator bypass; otherwise the sole admin can
-     approve or bypass their own secret-bearing run.
-8. Manually run `Supabase Encrypted Backup`; both jobs must pass.
-9. Manually run `Backup Restore Drill`; all three PASS lines must appear.
-10. Download the ciphertext into independent owner custody and perform a second
-    offline decrypt/read-back before declaring the backup operational.
+4. Store at least two independently controlled recoverable copies of the private
+   identity under dual custody. Never put the identity in Git, issues, chat,
+   logs, screenshots, or the DB URL.
+5. Replace `UNCONFIGURED_REVIEWED_RECIPIENT_REQUIRED` in `backup.yml` with the
+   exact public `age1...` recipient through a reviewed PR.
+6. Create two GitHub Environments restricted via **Selected branches and tags**
+   to exact branch `main`:
+   - `backup-export`: contains only `SUPABASE_DB_URL` (percent-encoded Supabase
+     session-pooler URL usable by GitHub's IPv4 runner).
+   - `backup-decrypt`: contains only `BACKUP_AGE_IDENTITY`.
+     Do not create repository-level copies of either secret. If Environment
+     approval is the independent review gate, enable prevent self-review and
+     disallow administrator bypass.
+7. Manually run `Supabase Encrypted Backup` (`production-38`) on `main`; both
+   jobs must pass.
+8. Manually run `Backup Restore Drill` (`production-38`) on `main`; all PASS
+   lines must appear, including `Restored authorization behavior: PASS`.
+9. Download the ciphertext into independent owner custody and perform a second
+   offline decrypt/read-back before declaring the backup operational.
+10. Only after steps 1–9 are evidenced, open a separate reviewed PR to add the
+    cron schedules and update the job `if:` / default `RECOVERY_PROFILE` for
+    `github.event_name == 'schedule'`.
 
-Until every step above has evidence, the status remains
+Until every step above has hosted evidence, hosted backup status remains
 `NOT ENABLED / NOT VERIFIED`.
 
-## age identity rotation and custody
+## `age` identity rotation and custody
 
 - Maintain at least two independently controlled recoverable copies of the
-  active age identity; one owner-controlled password manager entry alone is not
-  independent custody.
+  active `age` identity.
 - A recipient change affects new ciphertext only. Never delete or overwrite the
   old identity while any 90-day GitHub artifact or independently retained copy
   encrypted to that recipient still exists.
 - Before switching the repository recipient, prove offline decryption with both
-  the old and proposed identities under dual custody. Then enable the new
-  recipient, produce a new backup, pass authenticated read-back and the isolated
-  restore drill, and inventory every retained old-recipient artifact/copy.
-- Retire the old identity only after that inventory is empty by expiry or
-  reviewed re-encryption, and record owners, evidence run IDs, copy locations,
-  expiry and retirement confirmation without recording key material.
+  the old and proposed identities under dual custody, then verify export,
+  read-back, and isolated restore under the new recipient before retiring the
+  old identity after expiry or re-encryption.
 
 ## Trust boundary and honest limits
 
-- age protects confidentiality and authenticity of artifacts at rest. It does
-  not make an untrusted GitHub workflow safe. A malicious workflow merged into
-  `main` can read any secret granted to its job. Required review/rulesets and
-  restricted workflow ownership are therefore prerequisites, not optional
-  hardening.
-- age authenticates ciphertext integrity to the identity holder, not sender
-  identity. The reviewed successful GitHub run is the origin/provenance layer;
-  encrypted manifest run/attempt/SHA fields are checked against the selected
-  immutable artifact. Independent offline custody must also record that run ID.
-- The export job receives the production DB URL and public recipient, but not
-  the private age identity. Read-back and restore receive the private identity,
-  but never receive the production DB URL.
-- The two secrets live only in separate selected-`main` GitHub Environments;
-  each secret-consuming job also has a fail-closed `github.ref` condition.
-  These defenses complement, but do not replace, independent workflow review.
-- Plaintext SQL exists transiently under `RUNNER_TEMP` with mode `0700/0600`.
-  `if: always()` cleanup removes it. Forced runner termination may leave it
-  until GitHub destroys the ephemeral VM; ordinary deletion is not forensic
-  media erasure.
+- `age` protects confidentiality and authenticity of artifacts at rest; it does
+  not make an untrusted GitHub workflow safe. Required review/rulesets and
+  restricted workflow ownership are prerequisites.
+- `age` authenticates ciphertext integrity to the identity holder, not sender
+  identity; origin trust comes from the reviewed successful `main` workflow run
+  and encrypted provenance fields.
+- The export job receives `SUPABASE_DB_URL` and the public recipient, never
+  `BACKUP_AGE_IDENTITY`. Read-back and restore receive `BACKUP_AGE_IDENTITY`,
+  never `SUPABASE_DB_URL`.
+- Plaintext SQL exists transiently under `RUNNER_TEMP` with mode `0700/0600` and
+  is removed by `if: always()` cleanup; ordinary deletion is not forensic media
+  erasure.
 - A 90-day GitHub artifact is not an independent disaster domain from GitHub
-  credentials. Keep a separately controlled encrypted copy and recovery key.
-- Database dumps include Storage metadata, not Storage object bytes. Ishonch
-  Guard currently claims no persisted user screenshots; that assumption must
-  be rechecked whenever Storage use changes.
-- Logical backups provide discrete restore points, not PITR. Remaining on
-  Supabase Free does not meet the proposed launch recovery guarantee.
-- The restore workflow rejects a latest successful backup older than 36 hours,
-  but that weekly check is not an independent freshness alert. RPO claims stay
-  blocked until the separate monitor in the enablement list is operating.
-- The drill proves SQL portability into the pinned Supabase-local target. It is
-  not a hosted-project recovery, RTO measurement, or production restore.
+  credentials; keep a separately controlled encrypted copy and recovery key.
+- Logical SQL dumps include Storage metadata (`storage.buckets` and
+  `storage.objects`), **not** Storage object bytes in buckets. Inventory binary
+  bucket files and non-DB settings separately.
+- Logical backups provide discrete restore points, not PITR. Local or hosted
+  drill success proves SQL portability into the pinned Supabase-local target,
+  not a production restore or measured RTO.
 
 ## Manual non-production restore
 
-1. Verify the downloaded ciphertext SHA-256 for transport corruption.
-2. Decrypt with the independently held age identity:
+1. Verify the downloaded ciphertext SHA-256 (`sha256sum --check`) for transport
+   corruption.
+2. Decrypt with the independently held `age` identity:
 
    ```bash
    age --decrypt -i ishonch-backup-identity.txt \
      -o backup.tar supabase-backup.tar.age
    ```
 
-3. Validate the tar member allowlist and manifest hashes before extraction.
-4. Restore roles, schema, the reviewed managed-schema hook, data and the
-   migration-history schema/data pair into a newly created non-production
-   Supabase target using the same single-transaction order as the drill. Never
-   target production without a separately approved recovery window.
-5. Compare the encrypted expected migration inventory and count inventory
-   privately, then run schema lint, pgTAP, RLS/application smokes and the
-   recovery evidence checklist in `RECOVERY_AND_KEY_ROTATION.md`.
+3. Validate the exact 9-member tar allowlist (regular files only), manifest
+   hashes, and `recovery_contract.py verify --profile production-38`.
+4. Restore roles, empty-target ACL preparation, schema, `managed-schema.sql`,
+   data, `supabase_migrations`, and trusted schedules into a newly created
+   non-production Supabase target using the same single-transaction order as the
+   drill. Never target production without a separately approved recovery window.
+5. Verify migration inventory, 20-relation parity, `profile-security.sql`, and
+   pgTAP / recovery checks in `RECOVERY_AND_KEY_ROTATION.md`.

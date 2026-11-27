@@ -1,10 +1,17 @@
 BEGIN;
 
 -- Keep the lifecycle assertions deterministic when they run against a restored
--- snapshot that already contains the production polling-leader fence. This
--- delete is part of the test transaction and is restored by the ROLLBACK below.
+-- snapshot that already contains the polling-leader fence, retained updates,
+-- or a session newer than the test update. Reserve only this suite's fixture
+-- keys; all deleted rows are restored by the ROLLBACK below.
 DELETE FROM private.telegram_update_leaders
 WHERE name = 'telegram_updates';
+
+DELETE FROM public.telegram_webhook_updates
+WHERE update_id IN (900001, 900002, 900003);
+
+DELETE FROM public.telegram_sessions
+WHERE telegram_user_id = 700002;
 
 SELECT plan(41);
 
