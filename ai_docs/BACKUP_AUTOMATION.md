@@ -193,11 +193,14 @@ migration history, and trusted schedules (`schedule-restore-sql`).
   - **all 10/10 pgTAP suites (`661/661` assertions)** plus the **7-case P2
     lifecycle collision matrix (`287/287` assertions)** via
     `lifecycle_fixture_rehearsal.py`;
-  - **dedicated Linux Docker preflight and owned-only cleanup**: refuses
-    `Docker Desktop`, non-empty engines by default, and any pre-existing name
-    conflict before mutating state; cleanup removes only resources created by
-    the current run and verifies **bidirectional** Docker inventory parity (zero
-    added and zero removed containers, volumes, or networks).
+  - **dedicated local Linux Docker preflight and fault-tolerant owned-only
+    cleanup**: verifies a local Unix-socket native Linux Docker endpoint
+    (`unix:///...`), refuses remote contexts, `Docker Desktop`, and any
+    non-empty engine before mutating state; cleanup runs each stage
+    independently (so a timeout on one stack never skips cleaning the second
+    stack or temporary keys), removes only resources created by the current run,
+    and verifies **bidirectional** Docker inventory parity (zero added and zero
+    removed containers, volumes, or networks).
 
 ## One-time enablement (owner, only after workflow protection)
 

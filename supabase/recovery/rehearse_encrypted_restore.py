@@ -501,28 +501,83 @@ def run_crypto_bash(crypto_dir, script, *, use_native, check=True):
     )
 
 
+def resolve_git_head_sha(repo_root=ROOT):
+    """Resolve current 40-hex Git HEAD SHA via stdlib without requiring git binary."""
+    dot_git = Path(repo_root) / ".git"
+    if not dot_git.exists():
+        return None
+    git_dir = dot_git
+    if dot_git.is_file():
+        marker = dot_git.read_text(encoding="utf-8").strip()
+        if not marker.startswith("gitdir:"):
+            return None
+        target = Path(marker.split(":", 1)[1].strip())
+        git_dir = target if target.is_absolute() else (dot_git.parent / target).resolve()
+    common_dir = git_dir
+    commondir_file = git_dir / "commondir"
+    if commondir_file.is_file():
+        rel = commondir_file.read_text(encoding="utf-8").strip()
+        common_dir = (git_dir / rel).resolve()
+    head_file = git_dir / "HEAD"
+    if not head_file.is_file():
+        return None
+    head = head_file.read_text(encoding="utf-8").strip()
+    if re.fullmatch(r"[0-9a-f]{40}", head):
+        return head
+    if head.startswith("ref: "):
+        ref_name = head[5:].strip()
+        for base_dir in (git_dir, common_dir):
+            ref_file = base_dir / ref_name
+            if ref_file.is_file():
+                sha = ref_file.read_text(encoding="utf-8").strip()
+                if re.fullmatch(r"[0-9a-f]{40}", sha):
+                    return sha
+            packed = base_dir / "packed-refs"
+            if packed.is_file():
+                for line in packed.read_text(encoding="utf-8").splitlines():
+                    if not line or line.startswith(("#", "^")):
+                        continue
+                    parts = line.split(" ", 1)
+                    if len(parts) == 2 and parts[1].strip() == ref_name and re.fullmatch(r"[0-9a-f]{40}", parts[0]):
+                        return parts[0]
+    return None
+
+
+def docker_endpoint_host():
+    env_host = (os.environ.get("DOCKER_HOST") or "").strip()
+    if env_host:
+        return env_host
+    return run_cmd(
+        ["docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"],
+        timeout=30,
+    ).stdout.strip()
+
+
 def docker_engine_info():
     raw = run_cmd(["docker", "info", "--format", "{{json .}}"], timeout=30).stdout.strip()
     return json.loads(raw)
 
 
-def verify_dedicated_docker_engine(engine_info, before_docker, *, allow_shared_docker=False):
-    """Fail closed on non-Linux, Docker Desktop, or shared engines before mutating state."""
+def verify_dedicated_docker_engine(endpoint, engine_info, before_docker):
+    """Fail closed on remote, non-Linux, Docker Desktop, or non-empty engines."""
+    if not re.fullmatch(r"unix:///[^\s]+", endpoint or ""):
+        raise RuntimeError(
+            f"dedicated local Unix-socket Docker endpoint required (got {endpoint!r})"
+        )
     os_type = str(engine_info.get("OSType") or "").lower()
     operating_system = str(engine_info.get("OperatingSystem") or "")
     if os_type != "linux":
         raise RuntimeError(f"dedicated Linux Docker engine required (got OSType={os_type!r})")
     if "docker desktop" in operating_system.lower():
         raise RuntimeError(
-            "Docker Desktop detected; run this rehearsal against a dedicated native Linux Docker engine"
+            "Docker Desktop detected; run this rehearsal against a dedicated local native Linux Docker engine"
         )
-    if not allow_shared_docker:
-        default_networks = {"bridge", "host", "none"}
-        extra_networks = [n for n in before_docker["networks"] if n not in default_networks]
-        if before_docker["containers"] or before_docker["volumes"] or extra_networks:
-            raise RuntimeError(
-                "Docker engine is not empty; use a dedicated test engine or pass --allow-shared-docker"
-            )
+    default_networks = {"bridge", "host", "none"}
+    extra_networks = [n for n in before_docker["networks"] if n not in default_networks]
+    if before_docker["containers"] or before_docker["volumes"] or extra_networks:
+        raise RuntimeError(
+            "Docker engine is not empty; run this rehearsal only on a dedicated disposable local Linux Docker engine"
+        )
 
 
 def check_no_resource_conflicts(before_docker, project_ids, network_names):
@@ -538,59 +593,156 @@ def check_no_resource_conflicts(before_docker, project_ids, network_names):
 
 
 def stop_and_remove_owned_project(workdir, project_id, *, before_docker, started_projects, created_networks):
-    """Remove ONLY Docker resources created by this run; never touch anything in before_docker."""
+    """Remove ONLY Docker resources created by this run; never abort remaining cleanup on error/timeout."""
     before_containers = set(before_docker["containers"])
     before_volumes = set(before_docker["volumes"])
     before_networks = set(before_docker["networks"])
+    errors = []
 
+    def safe(label, args, timeout=30):
+        try:
+            return run_cmd(args, check=False, timeout=timeout)
+        except (subprocess.TimeoutExpired, OSError, RuntimeError) as exc:
+            errors.append(f"{label}: {type(exc).__name__}")
+            return None
+
+    label_filter = f"label=com.supabase.cli.project={project_id}"
     if project_id in started_projects:
         if workdir and Path(workdir).exists():
-            run_cmd(["supabase", "stop", "--workdir", str(workdir), "--no-backup"], check=False, timeout=90)
-        label_filter = f"label=com.supabase.cli.project={project_id}"
-        c_lines = run_cmd(
-            ["docker", "ps", "-a", "--filter", label_filter, "--format", "{{.ID}}\t{{.Names}}"],
-            check=False,
-            timeout=30,
-        ).stdout.splitlines()
-        owned_container_ids = []
-        for line in c_lines:
-            if "\t" not in line:
-                continue
-            cid, cname = line.split("\t", 1)
-            if cname not in before_containers:
-                owned_container_ids.append(cid)
-        if owned_container_ids:
-            run_cmd(["docker", "rm", "-f", *owned_container_ids], check=False, timeout=30)
+            safe("supabase-stop", ["supabase", "stop", "--workdir", str(workdir), "--no-backup"], timeout=90)
 
-        v_names = run_cmd(
-            ["docker", "volume", "ls", "-q", "--filter", label_filter],
-            check=False,
-            timeout=30,
-        ).stdout.split()
+        ps_res = safe(
+            "docker-ps",
+            ["docker", "ps", "-a", "--filter", label_filter, "--format", "{{.ID}}\t{{.Names}}"],
+        )
+        if ps_res is not None:
+            owned_container_ids = []
+            for line in ps_res.stdout.splitlines():
+                if "\t" not in line:
+                    continue
+                cid, cname = line.split("\t", 1)
+                if cname not in before_containers:
+                    owned_container_ids.append(cid)
+            if owned_container_ids:
+                rm_res = safe("docker-rm", ["docker", "rm", "-f", *owned_container_ids])
+                if rm_res is not None and rm_res.returncode != 0:
+                    errors.append(f"docker-rm: exit={rm_res.returncode}")
+
+        vol_res = safe("docker-volume-ls", ["docker", "volume", "ls", "-q", "--filter", label_filter])
+        v_names = vol_res.stdout.split() if vol_res is not None else []
         exact_db_vol = f"supabase_db_{project_id}"
         if exact_db_vol not in before_volumes:
-            probe_vol = run_cmd(["docker", "volume", "inspect", exact_db_vol], check=False, timeout=30)
-            if probe_vol.returncode == 0 and exact_db_vol not in v_names:
+            probe_vol = safe("docker-volume-inspect", ["docker", "volume", "inspect", exact_db_vol])
+            if probe_vol is not None and probe_vol.returncode == 0 and exact_db_vol not in v_names:
                 v_names.append(exact_db_vol)
         owned_volumes = [v for v in v_names if v not in before_volumes]
         if owned_volumes:
-            run_cmd(["docker", "volume", "rm", *owned_volumes], check=False, timeout=30)
+            vrm_res = safe("docker-volume-rm", ["docker", "volume", "rm", *owned_volumes])
+            if vrm_res is not None and vrm_res.returncode != 0:
+                errors.append(f"docker-volume-rm: exit={vrm_res.returncode}")
 
-        labeled_nets = run_cmd(
+        net_res = safe(
+            "docker-network-ls",
             ["docker", "network", "ls", "--filter", label_filter, "--format", "{{.Name}}"],
-            check=False,
-            timeout=30,
-        ).stdout.splitlines()
-        for net in labeled_nets:
-            net = net.strip()
-            if net and net not in before_networks:
-                run_cmd(["docker", "network", "rm", net], check=False, timeout=30)
+        )
+        if net_res is not None:
+            for net in net_res.stdout.splitlines():
+                net = net.strip()
+                if net and net not in before_networks:
+                    nrm_res = safe(f"docker-network-rm:{net}", ["docker", "network", "rm", net])
+                    if nrm_res is not None and nrm_res.returncode != 0:
+                        errors.append(f"docker-network-rm:{net}: exit={nrm_res.returncode}")
 
     for net in sorted(created_networks):
         if net in before_networks:
             continue
-        if run_cmd(["docker", "network", "inspect", net], check=False, timeout=30).returncode == 0:
-            run_cmd(["docker", "network", "rm", net], check=False, timeout=30)
+        insp = safe(f"docker-network-inspect:{net}", ["docker", "network", "inspect", net])
+        if insp is not None and insp.returncode == 0:
+            nrm = safe(f"docker-network-rm:{net}", ["docker", "network", "rm", net])
+            if nrm is not None and nrm.returncode != 0:
+                errors.append(f"docker-network-rm:{net}: exit={nrm.returncode}")
+
+    # Confirm removal succeeded before caller can treat project/networks as cleared.
+    if project_id in started_projects:
+        rem_c = safe(
+            "verify-containers-gone",
+            ["docker", "ps", "-a", "--filter", label_filter, "--format", "{{.Names}}"],
+        )
+        if rem_c is not None:
+            leftover = [c.strip() for c in rem_c.stdout.splitlines() if c.strip() and c.strip() not in before_containers]
+            if leftover:
+                errors.append("leftover-containers:" + ",".join(leftover))
+        rem_v = safe("verify-volumes-gone", ["docker", "volume", "ls", "-q", "--filter", label_filter])
+        if rem_v is not None:
+            leftover = [v for v in rem_v.stdout.split() if v not in before_volumes]
+            if leftover:
+                errors.append("leftover-volumes:" + ",".join(leftover))
+    for net in sorted(created_networks):
+        if net in before_networks:
+            continue
+        rem_n = safe(f"verify-network-gone:{net}", ["docker", "network", "inspect", net])
+        if rem_n is not None and rem_n.returncode == 0:
+            errors.append(f"leftover-network:{net}")
+
+    return len(errors) == 0, errors
+
+
+def finalize_cleanup(
+    *,
+    src_dir,
+    src_project,
+    tgt_dir,
+    tgt_project,
+    temp_root,
+    before_docker,
+    started_projects,
+    created_src_networks,
+    created_tgt_networks,
+):
+    """Run every cleanup stage independently so one timeout/error never skips remaining cleanup."""
+    errors = []
+    for label, workdir, project_id, nets in (
+        ("source", src_dir, src_project, created_src_networks),
+        ("target", tgt_dir, tgt_project, created_tgt_networks),
+    ):
+        try:
+            ok, step_errors = stop_and_remove_owned_project(
+                workdir,
+                project_id,
+                before_docker=before_docker,
+                started_projects=started_projects,
+                created_networks=nets,
+            )
+            if not ok:
+                errors.extend(f"{label}/{err}" for err in step_errors)
+        except Exception as exc:
+            errors.append(f"{label}: {type(exc).__name__}")
+
+    temp_deleted = False
+    try:
+        if temp_root is not None and Path(temp_root).exists():
+            shutil.rmtree(temp_root)
+        temp_deleted = temp_root is None or not Path(temp_root).exists()
+        if not temp_deleted:
+            errors.append("temp_root: directory still exists")
+    except Exception as exc:
+        errors.append(f"temp_root: {type(exc).__name__}")
+
+    inv_diff = None
+    try:
+        after_docker = docker_snapshot()
+        inv_diff = diff_inventory(before_docker, after_docker)
+        if not inv_diff["exactMatch"]:
+            errors.append("docker_inventory: before/after mismatch")
+    except Exception as exc:
+        errors.append(f"docker_snapshot: {type(exc).__name__}")
+
+    return {
+        "tempDirDeleted": temp_deleted,
+        "bidirectionalDockerDiff": inv_diff,
+        "cleanupErrors": errors,
+        "exactBeforeAfterMatch": bool(temp_deleted and inv_diff and inv_diff["exactMatch"] and not errors),
+    }
 
 
 def parse_args(argv=None):
@@ -599,11 +751,6 @@ def parse_args(argv=None):
     parser.add_argument("--run-id", default=str(int(time.time()) % 1000000))
     parser.add_argument("--source-port", type=int, default=58422)
     parser.add_argument("--target-port", type=int, default=59422)
-    parser.add_argument(
-        "--allow-shared-docker",
-        action="store_true",
-        help="Allow running on a non-empty native Linux Docker engine (still refuses Docker Desktop and any name conflicts).",
-    )
     args = parser.parse_args(argv)
     if not re.fullmatch(r"[0-9]{1,10}", args.run_id):
         raise ValueError("run-id must be 1..10 ASCII digits")
@@ -612,7 +759,7 @@ def parse_args(argv=None):
     return args
 
 
-def rehearse(profile_name, run_id, source_port, target_port, *, allow_shared_docker=False):
+def rehearse(profile_name, run_id, source_port, target_port):
     profile = rc.load_profile(profile_name)
     pins = parse_workflow_pins()
     cli_ver = run_cmd(["supabase", "--version"], timeout=30).stdout.strip()
@@ -627,11 +774,12 @@ def rehearse(profile_name, run_id, source_port, target_port, *, allow_shared_doc
     src_container = f"supabase_db_{src_project}"
     tgt_container = f"supabase_db_{tgt_project}"
 
-    # Verify dedicated Linux Docker engine and zero pre-existing conflicts BEFORE
-    # pulling images, creating temporary files, or mutating any Docker state.
+    # Verify dedicated local Linux Unix-socket Docker engine and zero pre-existing
+    # resources BEFORE pulling images, creating temporary files, or mutating Docker.
+    docker_endpoint = docker_endpoint_host()
     engine_info = docker_engine_info()
     before_docker = docker_snapshot()
-    verify_dedicated_docker_engine(engine_info, before_docker, allow_shared_docker=allow_shared_docker)
+    verify_dedicated_docker_engine(docker_endpoint, engine_info, before_docker)
     check_no_resource_conflicts(
         before_docker,
         (src_project, tgt_project),
@@ -665,6 +813,8 @@ def rehearse(profile_name, run_id, source_port, target_port, *, allow_shared_doc
 
     report = {
         "platform": sys.platform,
+        "gitHeadSha": resolve_git_head_sha(ROOT),
+        "dockerEndpoint": docker_endpoint,
         "profile": profile_name,
         "profileFingerprint": rc.fingerprint(profile),
         "supabaseCli": cli_ver,
@@ -871,13 +1021,15 @@ def rehearse(profile_name, run_id, source_port, target_port, *, allow_shared_doc
         if export_plain.exists() or bundle_tar.exists():
             raise RuntimeError("source plaintext was not deleted before restore")
         report["encryption"]["sourcePlaintextDeletedBeforeRestore"] = True
-        stop_and_remove_owned_project(
+        src_clean_ok, src_clean_errors = stop_and_remove_owned_project(
             src_dir,
             src_project,
             before_docker=before_docker,
             started_projects=started_projects,
             created_networks=created_src_networks,
         )
+        if not src_clean_ok:
+            raise RuntimeError("source stack cleanup incomplete: " + "; ".join(src_clean_errors))
         started_projects.discard(src_project)
         created_src_networks.clear()
         shutil.rmtree(src_dir, ignore_errors=True)
@@ -1189,26 +1341,17 @@ def rehearse(profile_name, run_id, source_port, target_port, *, allow_shared_doc
     except Exception as exc:
         fatal_error = str(exc)
     finally:
-        stop_and_remove_owned_project(
-            src_dir,
-            src_project,
+        report["cleanup"] = finalize_cleanup(
+            src_dir=src_dir,
+            src_project=src_project,
+            tgt_dir=tgt_dir,
+            tgt_project=tgt_project,
+            temp_root=temp_root,
             before_docker=before_docker,
             started_projects=started_projects,
-            created_networks=created_src_networks,
+            created_src_networks=created_src_networks,
+            created_tgt_networks=created_tgt_networks,
         )
-        stop_and_remove_owned_project(
-            tgt_dir,
-            tgt_project,
-            before_docker=before_docker,
-            started_projects=started_projects,
-            created_networks=created_tgt_networks,
-        )
-        shutil.rmtree(temp_root, ignore_errors=True)
-        report["cleanup"]["tempDirDeleted"] = not temp_root.exists()
-        after_docker = docker_snapshot()
-        inv_diff = diff_inventory(before_docker, after_docker)
-        report["cleanup"]["bidirectionalDockerDiff"] = inv_diff
-        report["cleanup"]["exactBeforeAfterMatch"] = report["cleanup"]["tempDirDeleted"] and inv_diff["exactMatch"]
         report["overallPass"] = (
             fatal_error is None
             and report["all20TablesNonEmptyInSource"]
@@ -1229,7 +1372,6 @@ def main():
         args.run_id,
         args.source_port,
         args.target_port,
-        allow_shared_docker=args.allow_shared_docker,
     )
 
 
