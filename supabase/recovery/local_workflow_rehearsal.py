@@ -226,7 +226,13 @@ def main():
             #!/bin/bash
             set -eu
             if [[ "$2" == "-nL" ]]; then exit 0; fi
+            if [[ "$2" == "-S" ]]; then
+              [[ "${FIREWALL_LIST_ERROR:-0}" == "1" ]] && exit 1
+              printf '%s\n' "${FIREWALL_CHAIN_RULES:--P INPUT ACCEPT}"
+              exit 0
+            fi
             if [[ "$2" == "-C" ]]; then
+              if [[ -n "${FIREWALL_CHECK_RC:-}" ]]; then exit "$FIREWALL_CHECK_RC"; fi
               [[ "${LEFTOVER_FIREWALL:-0}" == "1" ]] && exit 0
               exit 1
             fi
@@ -279,6 +285,15 @@ def main():
             }, False),
             ("leftover-firewall-rule", {
                 "LEFTOVER_FIREWALL": "1",
+            }, False),
+            ("firewall-check-error", {
+                "FIREWALL_CHECK_RC": "4",
+            }, False),
+            ("firewall-list-error", {
+                "FIREWALL_LIST_ERROR": "1",
+            }, False),
+            ("firewall-rule-still-in-list", {
+                "FIREWALL_CHAIN_RULES": "-A INPUT ! -i lo -p tcp --dport 55432 -m comment --comment ishonch-restore-123456 -j DROP",
             }, False),
         ]
         for case_name, extra_env, expected in drill_cleanup_cases:

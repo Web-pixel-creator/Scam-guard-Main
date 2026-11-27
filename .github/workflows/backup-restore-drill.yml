@@ -908,12 +908,43 @@ jobs:
             local command="$1"
             local chain="$2"
             shift 2
-            while sudo "$command" -C "$chain" "$@" > /dev/null 2>&1; do
-              if ! sudo "$command" -D "$chain" "$@" > /dev/null 2>&1; then
+            local check_rc=0
+            while true; do
+              sudo "$command" -C "$chain" "$@" > /dev/null 2>&1
+              check_rc=$?
+              if (( check_rc == 0 )); then
+                if ! sudo "$command" -D "$chain" "$@" > /dev/null 2>&1; then
+                  cleanup_failed=1
+                  break
+                fi
+              elif (( check_rc == 1 )); then
+                break
+              else
                 cleanup_failed=1
                 break
               fi
             done
+          }
+          verify_rule_absent() {
+            local command="$1"
+            local chain="$2"
+            shift 2
+            local chain_rules=""
+            local check_rc=0
+            if ! chain_rules="$(sudo "$command" -S "$chain" 2> /dev/null)"; then
+              cleanup_failed=1
+              return 1
+            fi
+            if grep --fixed-strings --quiet "$firewall_tag" <<< "$chain_rules"; then
+              cleanup_failed=1
+              return 1
+            fi
+            sudo "$command" -C "$chain" "$@" > /dev/null 2>&1
+            check_rc=$?
+            if (( check_rc != 1 )); then
+              cleanup_failed=1
+              return 1
+            fi
           }
           for command in iptables ip6tables; do
             if ! command -v "$command" > /dev/null \
@@ -965,14 +996,12 @@ jobs:
               cleanup_failed=1
               continue
             fi
-            sudo "$command" -C INPUT ! -i lo -p tcp \
+            verify_rule_absent "$command" INPUT ! -i lo -p tcp \
               --dport "$DRILL_DB_PORT" -m comment \
-              --comment "$firewall_tag" -j DROP \
-              > /dev/null 2>&1 && cleanup_failed=1
-            sudo "$command" -C DOCKER-USER ! -i lo -p tcp \
+              --comment "$firewall_tag" -j DROP
+            verify_rule_absent "$command" DOCKER-USER ! -i lo -p tcp \
               -m conntrack --ctorigdstport "$DRILL_DB_PORT" \
-              -m comment --comment "$firewall_tag" -j DROP \
-              > /dev/null 2>&1 && cleanup_failed=1
+              -m comment --comment "$firewall_tag" -j DROP
           done
           [[ -n "${DRILL_ROOT:-}" && -e "$DRILL_ROOT" ]] && cleanup_failed=1
 

@@ -342,6 +342,8 @@ describe("Supabase backup workflow contract", () => {
     expect(harness).toContain('step(DRILL, "Find latest successful main-branch backup")');
     expect(harness).toContain('step(DRILL, "Cleanup plaintext, database and network")');
     expect(harness).toContain('"leftover-internal-network"');
+    expect(harness).toContain('"firewall-check-error"');
+    expect(harness).toContain('"firewall-list-error"');
     expect(harness).toContain("step(workflow, step_name)");
     expect(harness).toContain('"temporaryKeysAndPlaintextRemoved": True');
     expect(harness).not.toContain("os.environ.copy()");
@@ -425,6 +427,9 @@ describe("Supabase backup workflow contract", () => {
     expect(restore).toContain("for command in iptables ip6tables");
     expect(restore).toContain('sudo "$command" -C INPUT');
     expect(restore).toContain('sudo "$command" -C DOCKER-USER');
+    expect(restore).toContain("verify_rule_absent()");
+    expect(restore).toContain('sudo "$command" -S "$chain"');
+    expect(restore).toContain("if (( check_rc != 1 )); then");
     expect(backup).toContain("Backup cleanup left transient material behind");
     expect(backup).toContain("Read-back cleanup left decrypted material behind");
   });

@@ -501,20 +501,94 @@ def run_crypto_bash(crypto_dir, script, *, use_native, check=True):
     )
 
 
-def stop_and_remove_project(workdir, project_id, extra_networks=()):
-    if workdir and Path(workdir).exists():
-        run_cmd(["supabase", "stop", "--workdir", str(workdir), "--no-backup"], check=False, timeout=90)
-    for filter_arg in (f"label=com.supabase.cli.project={project_id}", f"name={project_id}"):
-        containers = run_cmd(["docker", "ps", "-aq", "--filter", filter_arg], check=False, timeout=30).stdout.split()
-        if containers:
-            run_cmd(["docker", "rm", "-f", *containers], check=False, timeout=30)
-        volumes = run_cmd(["docker", "volume", "ls", "-q", "--filter", filter_arg], check=False, timeout=30).stdout.split()
-        if volumes:
-            run_cmd(["docker", "volume", "rm", *volumes], check=False, timeout=30)
-        networks = run_cmd(["docker", "network", "ls", "-q", "--filter", filter_arg], check=False, timeout=30).stdout.split()
-        if networks:
-            run_cmd(["docker", "network", "rm", *networks], check=False, timeout=30)
-    for net in (*extra_networks, f"supabase_network_{project_id}"):
+def docker_engine_info():
+    raw = run_cmd(["docker", "info", "--format", "{{json .}}"], timeout=30).stdout.strip()
+    return json.loads(raw)
+
+
+def verify_dedicated_docker_engine(engine_info, before_docker, *, allow_shared_docker=False):
+    """Fail closed on non-Linux, Docker Desktop, or shared engines before mutating state."""
+    os_type = str(engine_info.get("OSType") or "").lower()
+    operating_system = str(engine_info.get("OperatingSystem") or "")
+    if os_type != "linux":
+        raise RuntimeError(f"dedicated Linux Docker engine required (got OSType={os_type!r})")
+    if "docker desktop" in operating_system.lower():
+        raise RuntimeError(
+            "Docker Desktop detected; run this rehearsal against a dedicated native Linux Docker engine"
+        )
+    if not allow_shared_docker:
+        default_networks = {"bridge", "host", "none"}
+        extra_networks = [n for n in before_docker["networks"] if n not in default_networks]
+        if before_docker["containers"] or before_docker["volumes"] or extra_networks:
+            raise RuntimeError(
+                "Docker engine is not empty; use a dedicated test engine or pass --allow-shared-docker"
+            )
+
+
+def check_no_resource_conflicts(before_docker, project_ids, network_names):
+    """Refuse to start if any pre-existing Docker resource matches or contains run identifiers."""
+    tokens = tuple(sorted({*project_ids, *network_names}))
+    conflicts = []
+    for kind in ("containers", "volumes", "networks"):
+        for existing in before_docker[kind]:
+            if any(token in existing for token in tokens):
+                conflicts.append(f"{kind}:{existing}")
+    if conflicts:
+        raise RuntimeError("pre-existing Docker resource conflicts with rehearsal identifiers: " + ", ".join(conflicts))
+
+
+def stop_and_remove_owned_project(workdir, project_id, *, before_docker, started_projects, created_networks):
+    """Remove ONLY Docker resources created by this run; never touch anything in before_docker."""
+    before_containers = set(before_docker["containers"])
+    before_volumes = set(before_docker["volumes"])
+    before_networks = set(before_docker["networks"])
+
+    if project_id in started_projects:
+        if workdir and Path(workdir).exists():
+            run_cmd(["supabase", "stop", "--workdir", str(workdir), "--no-backup"], check=False, timeout=90)
+        label_filter = f"label=com.supabase.cli.project={project_id}"
+        c_lines = run_cmd(
+            ["docker", "ps", "-a", "--filter", label_filter, "--format", "{{.ID}}\t{{.Names}}"],
+            check=False,
+            timeout=30,
+        ).stdout.splitlines()
+        owned_container_ids = []
+        for line in c_lines:
+            if "\t" not in line:
+                continue
+            cid, cname = line.split("\t", 1)
+            if cname not in before_containers:
+                owned_container_ids.append(cid)
+        if owned_container_ids:
+            run_cmd(["docker", "rm", "-f", *owned_container_ids], check=False, timeout=30)
+
+        v_names = run_cmd(
+            ["docker", "volume", "ls", "-q", "--filter", label_filter],
+            check=False,
+            timeout=30,
+        ).stdout.split()
+        exact_db_vol = f"supabase_db_{project_id}"
+        if exact_db_vol not in before_volumes:
+            probe_vol = run_cmd(["docker", "volume", "inspect", exact_db_vol], check=False, timeout=30)
+            if probe_vol.returncode == 0 and exact_db_vol not in v_names:
+                v_names.append(exact_db_vol)
+        owned_volumes = [v for v in v_names if v not in before_volumes]
+        if owned_volumes:
+            run_cmd(["docker", "volume", "rm", *owned_volumes], check=False, timeout=30)
+
+        labeled_nets = run_cmd(
+            ["docker", "network", "ls", "--filter", label_filter, "--format", "{{.Name}}"],
+            check=False,
+            timeout=30,
+        ).stdout.splitlines()
+        for net in labeled_nets:
+            net = net.strip()
+            if net and net not in before_networks:
+                run_cmd(["docker", "network", "rm", net], check=False, timeout=30)
+
+    for net in sorted(created_networks):
+        if net in before_networks:
+            continue
         if run_cmd(["docker", "network", "inspect", net], check=False, timeout=30).returncode == 0:
             run_cmd(["docker", "network", "rm", net], check=False, timeout=30)
 
@@ -525,6 +599,11 @@ def parse_args(argv=None):
     parser.add_argument("--run-id", default=str(int(time.time()) % 1000000))
     parser.add_argument("--source-port", type=int, default=58422)
     parser.add_argument("--target-port", type=int, default=59422)
+    parser.add_argument(
+        "--allow-shared-docker",
+        action="store_true",
+        help="Allow running on a non-empty native Linux Docker engine (still refuses Docker Desktop and any name conflicts).",
+    )
     args = parser.parse_args(argv)
     if not re.fullmatch(r"[0-9]{1,10}", args.run_id):
         raise ValueError("run-id must be 1..10 ASCII digits")
@@ -533,12 +612,31 @@ def parse_args(argv=None):
     return args
 
 
-def rehearse(profile_name, run_id, source_port, target_port):
+def rehearse(profile_name, run_id, source_port, target_port, *, allow_shared_docker=False):
     profile = rc.load_profile(profile_name)
     pins = parse_workflow_pins()
     cli_ver = run_cmd(["supabase", "--version"], timeout=30).stdout.strip()
     if cli_ver != pins["SUPABASE_CLI_VERSION"]:
         raise RuntimeError(f"supabase CLI {cli_ver} != pinned {pins['SUPABASE_CLI_VERSION']}")
+
+    src_project = f"ishonch-src-drill-{run_id}"
+    tgt_project = f"ishonch-full-drill-{run_id}"
+    tgt_internal_net = f"ishonch-full-internal-{run_id}"
+    src_bridge_net = f"supabase_network_{src_project}"
+    tgt_bridge_net = f"supabase_network_{tgt_project}"
+    src_container = f"supabase_db_{src_project}"
+    tgt_container = f"supabase_db_{tgt_project}"
+
+    # Verify dedicated Linux Docker engine and zero pre-existing conflicts BEFORE
+    # pulling images, creating temporary files, or mutating any Docker state.
+    engine_info = docker_engine_info()
+    before_docker = docker_snapshot()
+    verify_dedicated_docker_engine(engine_info, before_docker, allow_shared_docker=allow_shared_docker)
+    check_no_resource_conflicts(
+        before_docker,
+        (src_project, tgt_project),
+        (tgt_internal_net, src_bridge_net, tgt_bridge_net),
+    )
 
     use_native_age = has_native_age_v131()
     if not use_native_age:
@@ -555,13 +653,9 @@ def rehearse(profile_name, run_id, source_port, target_port):
             )
 
     pinned_images = ensure_pinned_images(pins)
-    before_docker = docker_snapshot()
-
-    src_project = f"ishonch-src-drill-{run_id}"
-    tgt_project = f"ishonch-full-drill-{run_id}"
-    tgt_internal_net = f"ishonch-full-internal-{run_id}"
-    src_container = f"supabase_db_{src_project}"
-    tgt_container = f"supabase_db_{tgt_project}"
+    started_projects = set()
+    created_src_networks = set()
+    created_tgt_networks = set()
     cli_env = {
         "SUPABASE_TELEMETRY_DISABLED": "1",
         "DO_NOT_TRACK": "1",
@@ -653,10 +747,12 @@ def rehearse(profile_name, run_id, source_port, target_port):
                 "docker", "network", "create", "--driver", "bridge",
                 "--label", f"com.supabase.cli.project={src_project}",
                 "--opt", "com.docker.network.bridge.host_binding_ipv4=127.0.0.1",
-                f"supabase_network_{src_project}",
+                src_bridge_net,
             ],
             timeout=30,
         )
+        created_src_networks.add(src_bridge_net)
+        started_projects.add(src_project)
         run_cmd(["supabase", "db", "start", "--workdir", str(src_dir), "--yes"], env=cli_env, timeout=240)
 
         # 2. Seed unique synthetic rows across ALL 20 tables.
@@ -775,7 +871,15 @@ def rehearse(profile_name, run_id, source_port, target_port):
         if export_plain.exists() or bundle_tar.exists():
             raise RuntimeError("source plaintext was not deleted before restore")
         report["encryption"]["sourcePlaintextDeletedBeforeRestore"] = True
-        stop_and_remove_project(src_dir, src_project)
+        stop_and_remove_owned_project(
+            src_dir,
+            src_project,
+            before_docker=before_docker,
+            started_projects=started_projects,
+            created_networks=created_src_networks,
+        )
+        started_projects.discard(src_project)
+        created_src_networks.clear()
         shutil.rmtree(src_dir, ignore_errors=True)
 
         # 4. Negative fail-closed tamper controls (all as real non-zero command exits).
@@ -895,19 +999,20 @@ def rehearse(profile_name, run_id, source_port, target_port):
         report["negativeTamperControls"]["tamperedProfileHashVerifyNonZeroExit"] = True
 
         # 6. Start clean empty isolated target with exact workflow loopback + internal-network isolation.
-        cli_bridge = f"supabase_network_{tgt_project}"
         run_cmd(
             [
                 "docker", "network", "create", "--driver", "bridge",
                 "--label", f"com.supabase.cli.project={tgt_project}",
                 "--opt", "com.docker.network.bridge.host_binding_ipv4=127.0.0.1",
-                cli_bridge,
+                tgt_bridge_net,
             ],
             timeout=30,
         )
+        created_tgt_networks.add(tgt_bridge_net)
         run_cmd(["supabase", "init", "--workdir", str(tgt_dir), "--yes"], env=cli_env, timeout=60)
         prepare_cli_versions(tgt_dir, pins)
         patch_supabase_config(tgt_dir / "supabase/config.toml", tgt_project, target_port, pins["TARGET_POSTGRES_MAJOR"])
+        started_projects.add(tgt_project)
         run_cmd(["supabase", "db", "start", "--workdir", str(tgt_dir), "--yes"], env=cli_env, timeout=240)
 
         target_info = json.loads(run_cmd(["docker", "inspect", tgt_container], timeout=30).stdout)[0]
@@ -921,6 +1026,7 @@ def rehearse(profile_name, run_id, source_port, target_port):
         # Move empty target container to internal-only Docker network and detach
         # the CLI NAT bridge BEFORE copying any decrypted data into the container.
         run_cmd(["docker", "network", "create", "--internal", tgt_internal_net], timeout=30)
+        created_tgt_networks.add(tgt_internal_net)
         run_cmd(["docker", "network", "connect", tgt_internal_net, tgt_container], timeout=30)
         for old_net in list(target_info["NetworkSettings"]["Networks"].keys()):
             if old_net != tgt_internal_net:
@@ -1083,8 +1189,20 @@ def rehearse(profile_name, run_id, source_port, target_port):
     except Exception as exc:
         fatal_error = str(exc)
     finally:
-        stop_and_remove_project(src_dir, src_project)
-        stop_and_remove_project(tgt_dir, tgt_project, extra_networks=(tgt_internal_net,))
+        stop_and_remove_owned_project(
+            src_dir,
+            src_project,
+            before_docker=before_docker,
+            started_projects=started_projects,
+            created_networks=created_src_networks,
+        )
+        stop_and_remove_owned_project(
+            tgt_dir,
+            tgt_project,
+            before_docker=before_docker,
+            started_projects=started_projects,
+            created_networks=created_tgt_networks,
+        )
         shutil.rmtree(temp_root, ignore_errors=True)
         report["cleanup"]["tempDirDeleted"] = not temp_root.exists()
         after_docker = docker_snapshot()
@@ -1106,7 +1224,13 @@ def rehearse(profile_name, run_id, source_port, target_port):
 
 def main():
     args = parse_args()
-    return rehearse(args.profile, args.run_id, args.source_port, args.target_port)
+    return rehearse(
+        args.profile,
+        args.run_id,
+        args.source_port,
+        args.target_port,
+        allow_shared_docker=args.allow_shared_docker,
+    )
 
 
 if __name__ == "__main__":
