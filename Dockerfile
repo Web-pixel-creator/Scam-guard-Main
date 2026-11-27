@@ -34,12 +34,14 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 
-# Refresh the inherited Debian package: the 2026-10-07 container gate found
-# fixed High/Critical Perl vulnerabilities in the base image's deb12u3.
+# Refresh inherited Debian security packages:
+# - perl-base >= 5.36.0-7+deb12u4 (2026-10-07 container gate)
+# - linux-pam >= 1.5.2-6+deb12u3 (2026-11-27 CVE-2025-6020 High container gate)
 # Fail the build if the security mirror cannot supply at least the fixed floor.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends --only-upgrade perl-base \
+  && apt-get install -y --no-install-recommends --only-upgrade perl-base libpam-modules libpam-modules-bin libpam-runtime libpam0g \
   && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' perl-base)" ge 5.36.0-7+deb12u4 \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libpam0g)" ge 1.5.2-6+deb12u3 \
   && rm -rf /var/lib/apt/lists/*
 
 # The application starts with Node directly. npm/Corepack and their transitive

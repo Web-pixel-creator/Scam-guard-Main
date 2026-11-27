@@ -216,6 +216,8 @@ describe("toolchain security boundaries", () => {
     expect(dockerignore.split(/\r?\n/u)).toContain(".playwright-cli");
     expect(dockerfile).toContain("--only-upgrade perl-base");
     expect(dockerfile).toContain("ge 5.36.0-7+deb12u4");
+    expect(dockerfile).toContain("libpam0g");
+    expect(dockerfile).toContain("ge 1.5.2-6+deb12u3");
     expect(dockerfile.indexOf("--only-upgrade perl-base")).toBeLessThan(
       dockerfile.indexOf("USER node"),
     );
