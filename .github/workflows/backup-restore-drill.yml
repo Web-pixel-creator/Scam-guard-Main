@@ -892,8 +892,14 @@ jobs:
               docker network rm "${project_networks[@]}" > /dev/null 2>&1 \
                 || cleanup_failed=1
             fi
-            docker network rm "$DRILL_INTERNAL_NETWORK" > /dev/null 2>&1
-            docker network rm "supabase_network_${DRILL_PROJECT_ID}" > /dev/null 2>&1
+            if docker network inspect "$DRILL_INTERNAL_NETWORK" > /dev/null 2>&1; then
+              docker network rm "$DRILL_INTERNAL_NETWORK" > /dev/null 2>&1 \
+                || cleanup_failed=1
+            fi
+            if docker network inspect "supabase_network_${DRILL_PROJECT_ID}" > /dev/null 2>&1; then
+              docker network rm "supabase_network_${DRILL_PROJECT_ID}" > /dev/null 2>&1 \
+                || cleanup_failed=1
+            fi
           else
             cleanup_failed=1
           fi
@@ -944,7 +950,9 @@ jobs:
             if ! network_names="$(docker network ls --format '{{.Name}}')"; then
               cleanup_failed=1
             elif grep --fixed-strings --quiet "$DRILL_PROJECT_ID" \
-              <<< "$network_names"; then
+              <<< "$network_names" \
+              || grep --fixed-strings --line-regexp --quiet "$DRILL_INTERNAL_NETWORK" \
+                <<< "$network_names"; then
               cleanup_failed=1
             fi
           else

@@ -216,6 +216,86 @@ def main():
                 record(name + ("/injected-failure" if failure else "/success"), proc, not failure)
                 assert directory.exists() == failure
                 if failure: shutil.rmtree(directory)
+
+        drill_tools = base / "drill-tools"
+        drill_tools.mkdir()
+        executable(drill_tools / "supabase", "#!/bin/bash\nexit 0\n")
+        for fw in ("iptables", "ip6tables"):
+            executable(drill_tools / fw, "#!/bin/bash\nexit 0\n")
+        executable(drill_tools / "sudo", textwrap.dedent('''\
+            #!/bin/bash
+            set -eu
+            if [[ "$2" == "-nL" ]]; then exit 0; fi
+            if [[ "$2" == "-C" ]]; then
+              [[ "${LEFTOVER_FIREWALL:-0}" == "1" ]] && exit 0
+              exit 1
+            fi
+            if [[ "$2" == "-D" ]]; then
+              [[ "${LEFTOVER_FIREWALL:-0}" == "1" ]] && exit 1
+              exit 0
+            fi
+            exit 0
+            '''))
+        executable(drill_tools / "docker", textwrap.dedent('''\
+            #!/bin/bash
+            set -eu
+            case "${1:-}" in
+              info) exit 0 ;;
+              ps) printf '%s\n' "${LEFTOVER_CONTAINERS:-}" | sed '/^$/d'; exit 0 ;;
+              rm) exit 0 ;;
+              volume)
+                if [[ "${2:-}" == "ls" ]]; then
+                  printf '%s\n' "${LEFTOVER_VOLUMES:-}" | sed '/^$/d'
+                fi
+                exit 0 ;;
+              network)
+                case "${2:-}" in
+                  inspect)
+                    [[ "${INSPECT_INTERNAL_EXISTS:-0}" == "1" && "${3:-}" == "$DRILL_INTERNAL_NETWORK" ]] && exit 0
+                    exit 1 ;;
+                  rm)
+                    [[ "${FAIL_RM_INTERNAL:-0}" == "1" && "${3:-}" == "$DRILL_INTERNAL_NETWORK" ]] && exit 1
+                    exit 0 ;;
+                  ls)
+                    if [[ "${3:-}" == "--quiet" ]]; then exit 0; fi
+                    printf '%s\n' "${LEFTOVER_NETWORKS:-}" | sed '/^$/d'
+                    exit 0 ;;
+                esac ;;
+            esac
+            exit 0
+            '''))
+        drill_cleanup_cases = [
+            ("clean", {}, True),
+            ("leftover-internal-network", {
+                "INSPECT_INTERNAL_EXISTS": "1",
+                "FAIL_RM_INTERNAL": "1",
+                "LEFTOVER_NETWORKS": "bridge\nishonch-backup-internal-123456",
+            }, False),
+            ("internal-network-still-listed", {
+                "LEFTOVER_NETWORKS": "bridge\nishonch-backup-internal-123456",
+            }, False),
+            ("leftover-project-network", {
+                "LEFTOVER_NETWORKS": "bridge\nsupabase_network_ishonch-backup-drill-123456",
+            }, False),
+            ("leftover-firewall-rule", {
+                "LEFTOVER_FIREWALL": "1",
+            }, False),
+        ]
+        for case_name, extra_env, expected in drill_cleanup_cases:
+            drill_dir = base / ("drill-cleanup-" + case_name)
+            drill_dir.mkdir()
+            (drill_dir / "synthetic-private").write_text("synthetic")
+            proc = run(step(DRILL, "Cleanup plaintext, database and network"), {
+                "PATH": str(drill_tools) + ":" + clean_env["PATH"],
+                "DRILL_ROOT": str(drill_dir),
+                "DRILL_PROJECT_ID": "ishonch-backup-drill-123456",
+                "DRILL_INTERNAL_NETWORK": "ishonch-backup-internal-123456",
+                "DRILL_DB_PORT": "55432",
+                "GITHUB_RUN_ID": "123456",
+                **extra_env,
+            })
+            record("drill-cleanup/" + case_name, proc, expected)
+            assert not drill_dir.exists()
         gh_calls = (base / "gh-calls").read_text().splitlines()
         assert len(gh_calls) == len(freshness)
     assert not base.exists(), "temporary synthetic keys/plaintext retained"

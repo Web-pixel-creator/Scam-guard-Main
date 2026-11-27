@@ -340,6 +340,8 @@ describe("Supabase backup workflow contract", () => {
     expect(image).toContain("USER 10001:10001");
     expect(image).toContain("bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377");
     expect(harness).toContain('step(DRILL, "Find latest successful main-branch backup")');
+    expect(harness).toContain('step(DRILL, "Cleanup plaintext, database and network")');
+    expect(harness).toContain('"leftover-internal-network"');
     expect(harness).toContain("step(workflow, step_name)");
     expect(harness).toContain('"temporaryKeysAndPlaintextRemoved": True');
     expect(harness).not.toContain("os.environ.copy()");
@@ -416,6 +418,10 @@ describe("Supabase backup workflow contract", () => {
     expect(restore).toContain('cron "23 5 * * 6"');
     expect(restore).toContain("cleanup_failed=0");
     expect(restore).toContain("cleanup left isolated resources behind");
+    expect(restore).toContain('docker network inspect "$DRILL_INTERNAL_NETWORK"');
+    expect(restore).toContain(
+      'grep --fixed-strings --line-regexp --quiet "$DRILL_INTERNAL_NETWORK"',
+    );
     expect(restore).toContain("for command in iptables ip6tables");
     expect(restore).toContain('sudo "$command" -C INPUT');
     expect(restore).toContain('sudo "$command" -C DOCKER-USER');
